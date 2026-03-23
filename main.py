@@ -9,7 +9,7 @@ def main():
 
 def open_pickle_dataset(path, patient):
     handler = PPGDaliaDatasetHandler(path)
-    handler.extract_and_split_data(f'datasets/dalia/converted/{patient}')
+    handler.extract_data(f'datasets/dalia/converted/{patient}')
     #json_path = "datasets/dalia/converted/S1.json"
     #handler.convert_pkl_json(json_path)
 

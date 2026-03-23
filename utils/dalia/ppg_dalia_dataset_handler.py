@@ -64,7 +64,7 @@ class PPGDaliaDatasetHandler:
             json.dump(pkl_data, f, default=default_serialize, indent=4)
 
 
-    def extract_and_split_data(self, output_dir: str):
+    def extract_data(self, output_dir: str):
         """
             Extracts data from the pickle file and saves it in a structured
             format in the specified output directory for each patient.
