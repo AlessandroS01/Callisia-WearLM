@@ -35,13 +35,13 @@ class PlotHandler:
         return chart"""
 
 
-    def create_plot(self, start_row=10000, window_size=1000):
+    def create_plot(self, start_row=25000, window_size=1000):
         # Slice a consecutive chunk (no skipping points with ::)
-        end_row = start_row + 5000
+        end_row = start_row + 1000
         subset = np.array(self.dataset[start_row:end_row]).squeeze()
 
         chart = alt.Chart(
-            pd.DataFrame({'ECG':nk.signal_filter(subset, highcut=70, method="butterworth")}).reset_index()
+            pd.DataFrame({'ECG':nk.signal_filter(subset, sampling_rate=64, highcut=31, method="butterworth")}).reset_index()
         ).mark_line(strokeWidth=1.5).encode(
             x=alt.X('index:Q', title='Sample Index'),
             y=alt.Y('ECG:Q', title='Amplitude', scale=alt.Scale(zero=False))
