@@ -16,6 +16,41 @@ class PlotHandler:
 
         self.dataset = pd.read_csv(path_data)
 
+    def create_ecg_plot(self, start_row=100000, window_size=10000, method: str = 'neurokit'):
+        """
+            Generates ECG plot of the given window
+
+            Args:
+                start_row: Start row of the ECG plot
+                window_size: Window size of the ECG plot
+                method: Method of the ECG plot. Default is 'neurokit'
+        """
+        import matplotlib.pyplot as plt
+
+        end_row = start_row + window_size
+
+        ecg_subset = np.array(self.dataset[start_row:end_row]).squeeze()
+
+        pd.DataFrame(ecg_subset).plot()
+
+        signals = pd.DataFrame({
+            "ECG_Raw": ecg_subset,
+            "ECG_NeuroKit": nk.ecg_clean(ecg_subset, sampling_rate=700, method="neurokit"),
+            "ECG_BioSPPy": nk.ecg_clean(ecg_subset, sampling_rate=700, method="biosppy"),
+            "ECG_PanTompkins": nk.ecg_clean(ecg_subset, sampling_rate=700, method="pantompkins1985"),
+            "ECG_Hamilton": nk.ecg_clean(ecg_subset, sampling_rate=700, method="hamilton2002"),
+            "ECG_Elgendi": nk.ecg_clean(ecg_subset, sampling_rate=700, method="elgendi2010"),
+            "ECG_EngZeeMod": nk.ecg_clean(ecg_subset, sampling_rate=700, method="engzeemod2012"),
+            "ECG_VG": nk.ecg_clean(ecg_subset, sampling_rate=700, method="vg"),
+            "ECG_TC": nk.ecg_clean(ecg_subset, sampling_rate=700, method="templateconvolution")
+        })
+        signals.plot(subplots= True)
+        plt.show()
+        #signals, info = nk.ecg_process(ecg_subset, sampling_rate=700)
+
+        #nk.ecg_plot(signals, info)
+        #plt.show()
+
     """def create_plot(self):
         
         #Creates the plot on the given dataset
