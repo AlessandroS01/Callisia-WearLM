@@ -1,5 +1,6 @@
+from utils.dalia.ecg.ecg_quality_measure import ECGQualityMeasure
 from utils.dalia.feature_extractor import FeatureExtractor
-from utils.dalia.ppg_dalia_dataset_handler import PPGDaliaDatasetHandler
+from utils.dalia.dataset_handler import PPGDaliaDatasetHandler
 from utils.plot_handler import PlotHandler
 
 import pandas as pd
@@ -8,9 +9,16 @@ import pandas as pd
 def main():
     """
     calculate_rr_intervals()"""
-    path = "datasets/dalia/converted/S1/wrist/wrist_BVP.csv"
+    path = "datasets/dalia/converted/S1/chest/chest_ECG.csv"
 
-    see_plot(path)
+    compute_quality(path)
+
+    #see_plot(path)
+
+def compute_quality(path):
+    measure = ECGQualityMeasure(10, ecg_signal_path=path)
+    print(measure.signal_quality_index_retrieval())
+
 
 def open_pickle_dataset(path, patient):
     handler = PPGDaliaDatasetHandler(path)

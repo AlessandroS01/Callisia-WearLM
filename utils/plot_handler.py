@@ -2,6 +2,9 @@ import altair as alt
 import neurokit2 as nk
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+
+from utils.dalia.ecg.ecg_cleaning_method import ECGProcessMethod
 
 
 class PlotHandler:
@@ -16,7 +19,8 @@ class PlotHandler:
 
         self.dataset = pd.read_csv(path_data)
 
-    def create_ecg_plot(self, start_row=100000, window_size=10000, method: str = 'neurokit'):
+
+    def create_ecg_plot(self, start_row=0, window_size=4000, method: str = 'neurokit'):
         """
             Generates ECG plot of the given window
 
@@ -25,7 +29,6 @@ class PlotHandler:
                 window_size: Window size of the ECG plot
                 method: Method of the ECG plot. Default is 'neurokit'
         """
-        import matplotlib.pyplot as plt
 
         end_row = start_row + window_size
 
@@ -33,18 +36,20 @@ class PlotHandler:
 
         pd.DataFrame(ecg_subset).plot()
 
-        signals = pd.DataFrame({
-            "ECG_Raw": ecg_subset,
-            "ECG_NeuroKit": nk.ecg_clean(ecg_subset, sampling_rate=700, method="neurokit"),
-            "ECG_BioSPPy": nk.ecg_clean(ecg_subset, sampling_rate=700, method="biosppy"),
-            "ECG_PanTompkins": nk.ecg_clean(ecg_subset, sampling_rate=700, method="pantompkins1985"),
-            "ECG_Hamilton": nk.ecg_clean(ecg_subset, sampling_rate=700, method="hamilton2002"),
-            "ECG_Elgendi": nk.ecg_clean(ecg_subset, sampling_rate=700, method="elgendi2010"),
-            "ECG_EngZeeMod": nk.ecg_clean(ecg_subset, sampling_rate=700, method="engzeemod2012"),
-            "ECG_VG": nk.ecg_clean(ecg_subset, sampling_rate=700, method="vg"),
-            "ECG_TC": nk.ecg_clean(ecg_subset, sampling_rate=700, method="templateconvolution")
-        })
-        signals.plot(subplots= True)
+        for ecg_method in ECGProcessMethod:
+            signals, info = nk.ecg_process(ecg_subset, sampling_rate=700, method=ecg_method.value)
+            nk.ecg_plot(signals, info)
+            print(info)
+
+            pd.DataFrame({f"ECG_NeuroKit_{ecg_method.value}": signals['ECG_Clean']}).plot()
+
+        #pd.DataFrame(ecg_subset).plot()
+
+        #for method in ECGCleaningMethod:
+        #    pd.DataFrame({
+        #        f"ECG_NeuroKit_{method.value}": nk.ecg_clean(ecg_subset, sampling_rate=700, method=method.value),
+        #    }).plot()
+
         plt.show()
         #signals, info = nk.ecg_process(ecg_subset, sampling_rate=700)
 
