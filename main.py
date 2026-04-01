@@ -9,15 +9,17 @@ import pandas as pd
 def main():
     """
     calculate_rr_intervals()"""
-    path = "datasets/dalia/converted/S1/chest/chest_ECG.csv"
+    path_ecg = "datasets/dalia/converted/S1/chest/chest_ECG.csv"
+    r_peaks_path = "datasets/dalia/converted/S1/rpeaks.csv"
 
-    compute_quality(path)
+    compute_quality(path_ecg, r_peaks_path)
 
     #see_plot(path)
 
-def compute_quality(path):
-    measure = ECGQualityMeasure(10, ecg_signal_path=path)
-    print(measure.signal_quality_index_retrieval())
+def compute_quality(ecg_path, r_peaks_path):
+    measure = ECGQualityMeasure(10, ecg_signal_path=ecg_path, r_peaks_path=r_peaks_path)
+    print(measure.calculate_peak_f1())
+    #print(measure.signal_quality_index_retrieval("datasets/dalia/converted/S1/features/signal_quality.parquet"))
 
 
 def open_pickle_dataset(path, patient):
