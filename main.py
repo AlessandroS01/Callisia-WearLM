@@ -18,7 +18,7 @@ def main():
         extractor = FeatureExtractor(n_seconds=10, ecg_signal_path=path_ecg, r_peaks_path=r_peaks_path)
 
         #extractor.signal_quality_index_retrieval(parquet_file)
-        extractor.calculate_peaks_f1_score()
+        print(extractor.calculate_peaks_f1_score())
 
     #see_plot(path)
 

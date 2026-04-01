@@ -56,7 +56,7 @@ class FeatureExtractor:
             Returns:
                 F1 score
         """
-        self.ecg_quality_measure.calculate_peak_f1()
+        return self.ecg_quality_measure.calculate_peak_f1()
 
     def signal_quality_index_retrieval(self, filename):
         """
