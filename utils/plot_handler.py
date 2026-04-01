@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from utils.dalia.ecg.ecg_cleaning_method import ECGProcessMethod
+from utils.dalia.ecg.ecg_cleaning_type import ECGProcessMethod
 
 
 class PlotHandler:

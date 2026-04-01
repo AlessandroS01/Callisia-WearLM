@@ -9,10 +9,16 @@ import pandas as pd
 def main():
     """
     calculate_rr_intervals()"""
-    path_ecg = "datasets/dalia/converted/S1/chest/chest_ECG.csv"
-    r_peaks_path = "datasets/dalia/converted/S1/rpeaks.csv"
+    for i in range(1, 16):
+        patient = f"S{i}"
+        path_ecg = f"datasets/dalia/converted/{patient}/chest/chest_ECG.csv"
+        r_peaks_path = f"datasets/dalia/converted/{patient}/rpeaks.csv"
+        parquet_file = f"datasets/dalia/converted/{patient}/features/signal_quality.parquet"
 
-    compute_quality(path_ecg, r_peaks_path)
+        extractor = FeatureExtractor(n_seconds=10, ecg_signal_path=path_ecg, r_peaks_path=r_peaks_path)
+
+        #extractor.signal_quality_index_retrieval(parquet_file)
+        extractor.calculate_peaks_f1_score()
 
     #see_plot(path)
 

@@ -67,6 +67,9 @@ class ECGQualityMeasure:
             Breaks down the ECG signal into chunks of given time window and calculates the signal quality index (SQI)
             using the neurokit2 prebuilt function ecg_quality().
 
+            Args:
+                filename: ECG filename to create
+
             Returns:
                 A list of tuples, where each tuple contains the step, the corresponding signal quality index for each
                 singular ecg value and the mean of the signal quality index for that chunk
@@ -78,8 +81,7 @@ class ECGQualityMeasure:
         for step in range(0, len(self.ecg_signal) - window_size + 1, step_size):
             print("Processing step: ", step)
             ecg_signal_chunk = self.ecg_signal.iloc[step:step + window_size]
-
-            cleaned_ecg_chunk = nk.ecg_clean(ecg_signal_chunk, sampling_rate=ECG_SAMPLING_RATE)
+            cleaned_ecg_chunk = self.clean_ecg(ecg_signal_chunk)
 
             # quality of each single point
             quality = nk.ecg_quality(cleaned_ecg_chunk, sampling_rate=ECG_SAMPLING_RATE)
