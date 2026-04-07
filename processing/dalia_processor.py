@@ -1,11 +1,12 @@
-import torch
+import os
+
 import pandas as pd
 import numpy as np
 
 from utils.dalia.configuration import BVP_SAMPLING_RATE, ACC_SAMPLING_RATE, WINDOW_SIZE_SEC
 
 
-class DaliaProcessor(torch.nn.Module):
+class DaliaProcessor():
     """
     Orchestrates the preprocessing of the PPG-DaLiA dataset for 1D-CNN ingestion.
 
@@ -30,6 +31,9 @@ class DaliaProcessor(torch.nn.Module):
         self.window_size_sec = WINDOW_SIZE_SEC
         self.bvp_hz = BVP_SAMPLING_RATE
         self.acc_hz = ACC_SAMPLING_RATE
+
+        self.bvp_data = self._retrieve_data("wrist/wrist_BVP.csv")
+        self.acc_data = self._retrieve_data("wrist/wrist_ACC.csv")
 
     def _align_and_resample(self, bvp_df: pd.DataFrame, acc_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -72,10 +76,17 @@ class DaliaProcessor(torch.nn.Module):
 
         Returns:
             tuple: A tuple containing:
+
                 - X (np.ndarray): The 3D feature tensor.
-                  Shape: (num_valid_windows, window_size_sec * bvp_hz, 4)
-                  Example Shape: (1500, 640, 4) representing [BVP, ACCx, ACCy, ACCz].
+
+                  Shape: (num_valid_windows, sequence_length, num_channels)
+
+                  Num channels must be 4 and represents [BVP, ACCx, ACCy, ACCz].
                 - y (np.ndarray): The 1D label array (e.g., instantaneous HR).
                   Shape: (num_valid_windows)
         """
         pass
+
+    def _retrieve_data(self, typology:str) -> pd.DataFrame:
+        path = os.path.join(self.subject_dir, typology)
+        return pd.read_csv(path)
