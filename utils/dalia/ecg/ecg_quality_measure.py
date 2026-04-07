@@ -2,7 +2,7 @@ import neurokit2 as nk
 import numpy as np
 import pandas as pd
 
-from utils.dalia.configuration import ECG_SAMPLING_RATE
+from utils.dalia.configuration import ECG_SAMPLING_RATE, WINDOW_SIZE_SEC
 
 
 class ECGQualityMeasure:
@@ -15,7 +15,7 @@ class ECGQualityMeasure:
                 r_peaks_path: Path to the R_peaks ground truth file
                 ecg_signal_path: Path to the ECG signal to be processed
         """
-        self.n_seconds = n_seconds
+        self.n_seconds = WINDOW_SIZE_SEC
         self.ecg_signal = pd.read_csv(ecg_signal_path).iloc[:, 0]
         self.true_peaks = np.array(pd.read_csv(r_peaks_path))
 
