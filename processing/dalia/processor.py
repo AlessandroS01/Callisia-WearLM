@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 from pandas import DataFrame
 
-from processing.dalia.utils.params.configuration import BVP_SAMPLING_RATE, ACC_SAMPLING_RATE, WINDOW_SIZE_SEC
+from processing.dalia.utils.params.configuration import BVP_SAMPLING_RATE, ACC_SAMPLING_RATE, WINDOW_SIZE_SEC, \
+    STEP_SIZE_SEC
 
 
 class DaliaProcessor:
@@ -34,6 +35,9 @@ class DaliaProcessor:
 
         self.window_size_bvp = WINDOW_SIZE_SEC * BVP_SAMPLING_RATE
         self.window_size_acc = WINDOW_SIZE_SEC * ACC_SAMPLING_RATE
+
+        self.step_size_bvp = STEP_SIZE_SEC * BVP_SAMPLING_RATE
+        self.step_size_acc = STEP_SIZE_SEC * ACC_SAMPLING_RATE
 
         self.bvp_data = self._retrieve_data("wrist/wrist_BVP.csv", "csv")
         self.acc_data = self._retrieve_data("wrist/wrist_ACC.csv", "csv")
@@ -104,9 +108,9 @@ class DaliaProcessor:
 
     def _fill_arrays(self, feature) -> list:
 
-        data = self.bvp_data if feature == "bvp" else self.acc_data if feature == "sqi" else self.sqi_data
+        data = self.bvp_data if feature == "bvp" else self.acc_data
         window_size = self.window_size_bvp if feature == "bvp" else self.window_size_acc
-        step_size = window_size // 3
+        step_size = self.step_size_bvp if feature == "bvp" else self.step_size_acc
 
         array = []
 

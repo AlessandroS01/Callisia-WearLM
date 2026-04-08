@@ -32,8 +32,8 @@ class ECGQualityMeasure:
                 singular ecg value and the mean of the signal quality index for that chunk
         """
         signal_quality_index = []
-        window_size = WINDOW_SIZE_SEC
-        step_size = STEP_SIZE_SEC
+        window_size = WINDOW_SIZE_SEC * ECG_SAMPLING_RATE
+        step_size = STEP_SIZE_SEC * ECG_SAMPLING_RATE
 
         for step in range(0, len(self.ecg_signal) - window_size + 1, step_size):
             print("Processing step: ", step)
@@ -47,6 +47,7 @@ class ECGQualityMeasure:
             signal_quality_index.append(mean)
 
         save_csv(attribute="signal_quality_index", output_path=output_path, data=signal_quality_index)
+        return signal_quality_index
 
     def clean_ecg(self, ecg_signal):
         """
@@ -60,10 +61,10 @@ class ECGQualityMeasure:
         """
         return nk.ecg_clean(ecg_signal, sampling_rate=ECG_SAMPLING_RATE)
 
-    @deprecated
+    @deprecated("No longer needed as SQI gives already this information, and the F1 score is not a good measure for this task")
     def calculate_peak_f1(self, tolerance=int(0.05 * ECG_SAMPLING_RATE)):
         """
-            Calculates F1 score between detected and ground truth peaks. No longer needed as SQI gives already this information
+            Calculates F1 score between detected and ground truth peaks.
 
             Args:
                   tolerance: Margin of error when comparing detected peaks with ground truth peaks. Default to 5% of the sampling rate

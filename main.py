@@ -12,7 +12,8 @@ def extractor():
         r_peaks_path = f"datasets/dalia/standardized/{patient}/rpeaks.csv"
         ecg_path = f"datasets/dalia/standardized/{patient}/chest/chest_ECG.csv"
         fe = FeatureExtractor(r_peaks_path=r_peaks_path, ecg_signal_path=ecg_path)
-        fe.calculate_bpm(patient)
+        print("Doing patient " + str(i))
+        fe.signal_quality_index_retrieval(output_path=f"datasets/dalia/standardized/{patient}/features")
 
 if __name__ == '__main__':
     main()
