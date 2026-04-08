@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from pandas import DataFrame
 
-from utils.dalia.configuration import BVP_SAMPLING_RATE, ACC_SAMPLING_RATE, WINDOW_SIZE_SEC
+from processing.dalia.utils.params.configuration import BVP_SAMPLING_RATE, ACC_SAMPLING_RATE, WINDOW_SIZE_SEC
 
 
 class DaliaProcessor:

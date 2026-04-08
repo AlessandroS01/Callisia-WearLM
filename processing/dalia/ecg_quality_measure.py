@@ -1,27 +1,69 @@
 import neurokit2 as nk
 import numpy as np
 import pandas as pd
+from typing_extensions import deprecated
 
-from utils.dalia.configuration import ECG_SAMPLING_RATE, WINDOW_SIZE_SEC
+from processing.dalia.utils.csv_saver import save_csv
+from processing.dalia.utils.params.configuration import ECG_SAMPLING_RATE, WINDOW_SIZE_SEC, STEP_SIZE_SEC
 
 
 class ECGQualityMeasure:
-    def __init__(self, n_seconds=10, r_peaks_path=None, ecg_signal_path=None):
+    def __init__(self, r_peaks_path=None, ecg_signal_path=None):
         """
             Constructor for the ECGQualityMeasure class that initializes the number of seconds for the time window
 
             Args:
-                n_seconds: The number of seconds in which the ECG signal should be chunked. Defaults to 10 seconds
                 r_peaks_path: Path to the R_peaks ground truth file
                 ecg_signal_path: Path to the ECG signal to be processed
         """
-        self.n_seconds = WINDOW_SIZE_SEC
         self.ecg_signal = pd.read_csv(ecg_signal_path).iloc[:, 0]
         self.true_peaks = np.array(pd.read_csv(r_peaks_path))
 
+    def signal_quality_index_retrieval(self, output_path):
+        """
+            Breaks down the ECG signal into chunks of given time window and calculates the signal quality index (SQI)
+            using the neurokit2 prebuilt function ecg_quality().
+
+            Args:
+                output_path: Directory where the signal quality index will be saved as a csv file
+
+            Returns:
+                A list of tuples, where each tuple contains the step, the corresponding signal quality index for each
+                singular ecg value and the mean of the signal quality index for that chunk
+        """
+        signal_quality_index = []
+        window_size = WINDOW_SIZE_SEC
+        step_size = STEP_SIZE_SEC
+
+        for step in range(0, len(self.ecg_signal) - window_size + 1, step_size):
+            print("Processing step: ", step)
+            ecg_signal_chunk = self.ecg_signal.iloc[step:step + window_size]
+            cleaned_ecg_chunk = self.clean_ecg(ecg_signal_chunk)
+
+            # quality of each single point
+            quality = nk.ecg_quality(cleaned_ecg_chunk, sampling_rate=ECG_SAMPLING_RATE)
+            mean = np.mean(quality)
+
+            signal_quality_index.append(mean)
+
+        save_csv(attribute="signal_quality_index", output_path=output_path, data=signal_quality_index)
+
+    def clean_ecg(self, ecg_signal):
+        """
+            Cleans the ECG signal using the neurokit2 prebuilt function ecg_clean().
+
+            Args:
+                ecg_signal: ECG signal to be cleaned
+
+            Returns:
+                The cleaned ECG signal
+        """
+        return nk.ecg_clean(ecg_signal, sampling_rate=ECG_SAMPLING_RATE)
+
+    @deprecated
     def calculate_peak_f1(self, tolerance=int(0.05 * ECG_SAMPLING_RATE)):
         """
-            Calculates F1 score between detected and ground truth peaks.
+            Calculates F1 score between detected and ground truth peaks. No longer needed as SQI gives already this information
 
             Args:
                   tolerance: Margin of error when comparing detected peaks with ground truth peaks. Default to 5% of the sampling rate
@@ -61,39 +103,3 @@ class ECGQualityMeasure:
 
         f1_score = (2 * true_positives) / (2 * true_positives + len(false_positives) + false_negatives)
         return f1_score
-
-    def signal_quality_index_retrieval(self, filename):
-        """
-            Breaks down the ECG signal into chunks of given time window and calculates the signal quality index (SQI)
-            using the neurokit2 prebuilt function ecg_quality().
-
-            Args:
-                filename: ECG filename to create
-
-            Returns:
-                A list of tuples, where each tuple contains the step, the corresponding signal quality index for each
-                singular ecg value and the mean of the signal quality index for that chunk
-        """
-        signal_quality_index = []
-        window_size = self.n_seconds * ECG_SAMPLING_RATE
-        step_size = window_size // 3
-
-        for step in range(0, len(self.ecg_signal) - window_size + 1, step_size):
-            print("Processing step: ", step)
-            ecg_signal_chunk = self.ecg_signal.iloc[step:step + window_size]
-            cleaned_ecg_chunk = self.clean_ecg(ecg_signal_chunk)
-
-            # quality of each single point
-            quality = nk.ecg_quality(cleaned_ecg_chunk, sampling_rate=ECG_SAMPLING_RATE)
-            mean = np.mean(quality)
-
-            signal_quality_index.append((step, mean))
-
-
-        df = pd.DataFrame(signal_quality_index, columns= ['step', 'mean_quality_nk'])
-        df.to_parquet(filename, index=False)
-
-        return signal_quality_index
-
-    def clean_ecg(self, ecg_signal):
-        return nk.ecg_clean(ecg_signal, sampling_rate=ECG_SAMPLING_RATE)

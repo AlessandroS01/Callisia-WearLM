@@ -4,11 +4,12 @@ import pickle as pkl
 
 import numpy as np
 import pandas as pd
+from sklearn.utils import deprecated
 
 
 class PPGDaliaDatasetHandler:
     """
-        A class to handle operations on the PPG Dalia dataset files.
+        Class to obtain a standardized dataset from the original PPG Dalia dataset.
     """
 
     def __init__(self, path):
@@ -44,25 +45,6 @@ class PPGDaliaDatasetHandler:
             print(f"An unexpected error occurred: {e}")
 
         return None
-
-    def convert_pkl_json(self, json_path_name: str):
-        """
-            Converts the data from a pickle file to a JSON file and save it under the given path
-
-            Args:
-                json_path_name: JSON file path
-        """
-        pkl_data = self.read_pkl_dataset()
-
-        # Helper to convert numpy arrays to lists so they are JSON serializable
-        def default_serialize(obj):
-            if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            return str(obj)
-
-        with open(json_path_name, 'w') as f:
-            json.dump(pkl_data, f, default=default_serialize, indent=4)
-
 
     def extract_data(self, output_dir: str):
         """
@@ -135,3 +117,22 @@ class PPGDaliaDatasetHandler:
                   f"Type: {type(value)}, "
                   f"Shape: {getattr(value, 'shape', len(value))}"
                   )
+
+    @deprecated()
+    def convert_pkl_json(self, json_path_name: str):
+        """
+            Converts the data from a pickle file to a JSON file and save it under the given path
+
+            Args:
+                json_path_name: JSON file path
+        """
+        pkl_data = self.read_pkl_dataset()
+
+        # Helper to convert numpy arrays to lists so they are JSON serializable
+        def default_serialize(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            return str(obj)
+
+        with open(json_path_name, 'w') as f:
+            json.dump(pkl_data, f, default=default_serialize, indent=4)
