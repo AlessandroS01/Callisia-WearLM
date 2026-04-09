@@ -6,7 +6,7 @@ them for 1D Convolutional Neural Networks by applying the necessary transpositio
 """
 import numpy as np
 from sklearn.externals.array_api_compat import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 
 class DaliaHRDataset(Dataset):
@@ -20,18 +20,18 @@ class DaliaHRDataset(Dataset):
     to match PyTorch's strict 1D CNN input shape requirements.
 
     Args:
-        x_windows (np.ndarray): A 3D array of shape (N, 512, 4) containing the fused BVP and ACC channels.
-        y_windows (np.ndarray): A 1D array of shape (N, 1) containing the heart rate regression targets.
+        x_windows (np.ndarray): A 3D array of shape (N, 512, 4) containing [BVP, ACC] channels.
+        y_windows (np.ndarray): A 1D array of shape (N, 1) containing the HR targets.
 
     Attributes:
         x_windows (np.ndarray): A 3D array containing [BVP, ACCx, ACCy, ACCz] signal windows.
         labels (np.ndarray): The stored heart rate regression targets.
 
     Example:
-        >>> dataset = DaliaHRDataset()
-        >>> dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-        >>> features, labels = next(iter(dataloader))
-        >>> features.shape
+        >>> #dataset = DaliaHRDataset()
+        >>> #dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+        >>> #features, labels = next(iter(dataloader))
+        >>> #features.shape
         torch.Size([32, 4, 512])  # (Batch, Channels, Sequence_Length)
     """
     def __init__(self, x_windows, y_windows):

@@ -17,11 +17,7 @@ def main():
     """
     #extractor()
     processor = DaliaProcessor("datasets/dalia/standardized/S1")
-    array = processor.get_standardized_windows()
-    print(f"x {array[0].shape}")
-    print(f"y {array[1].shape}")
-    dataset = DaliaHRDataset(array[0], array[1])
-    print(dataset.__getitem__(0)[0].shape)
+    processor.get_standardized_windows()
 
 
 
