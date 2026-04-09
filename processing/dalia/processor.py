@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import numpy as np
+import scipy
 from pandas import DataFrame
 
 from processing.dalia.utils.params.configuration import BVP_SAMPLING_RATE, ACC_SAMPLING_RATE, WINDOW_SIZE_SEC, \
@@ -19,11 +20,12 @@ class DaliaProcessor:
 
     Attributes:
         subject_dir (str): Path to the base directory of a single DaLiA subject.
-        window_size_bvp (int): The size of the window for BVP data in samples.
-        window_size_acc (int): The size of the window for ACC data in samples.
-        bvp_data (pd.DataFrame): Raw BVP data. Shape: (N, 1)
-        acc_data (pd.DataFrame): Raw ACC data. Shape: (M, 3)
-        sqi_data (pd.DataFrame): Raw SQI data. Shape: (M, 1)
+        window_size (int): The size of the window for BVP and upsampled ACC data in samples.
+        step_size (int): The step size for sliding windows in BVP and upsampled ACC data in samples.
+        raw_x (pd.DataFrame): DataFrame containing BVP and ACC values. Shape: (N, 4)
+        labels (pd.DataFrame): DataFrame containing label values. Shape: (N, 1)
+        quality_mask (pd.DataFrame): DataFrame containing quality mask values. Shape: (N, 1)
+        sqi_threshold (float): Threshold to determine if a specific time window is to be taken
         """
 
     def __init__(self, subject_dir: str):
@@ -33,17 +35,20 @@ class DaliaProcessor:
         super(DaliaProcessor, self).__init__()
         self.subject_dir = subject_dir
 
-        self.window_size_bvp = WINDOW_SIZE_SEC * BVP_SAMPLING_RATE
-        self.window_size_acc = WINDOW_SIZE_SEC * ACC_SAMPLING_RATE
+        self.window_size = WINDOW_SIZE_SEC * BVP_SAMPLING_RATE
 
-        self.step_size_bvp = STEP_SIZE_SEC * BVP_SAMPLING_RATE
-        self.step_size_acc = STEP_SIZE_SEC * ACC_SAMPLING_RATE
+        self.step_size = STEP_SIZE_SEC * BVP_SAMPLING_RATE
 
-        self.bvp_data = self._retrieve_data("wrist/wrist_BVP.csv", "csv")
-        self.acc_data = self._retrieve_data("wrist/wrist_ACC.csv", "csv")
-        self.sqi_data = self._retrieve_data("features/signal_quality.parquet", "parquet")
+        bvp_data = self._retrieve_data("wrist/wrist_BVP.csv")
+        acc_data = self._retrieve_data("wrist/wrist_ACC.csv")
 
-    def _align_and_resample(self, bvp_df: pd.DataFrame, acc_df: pd.DataFrame) -> pd.DataFrame:
+        self.raw_x = self._align_and_upsample_acc(bvp_data, acc_data)
+        self.labels = self._retrieve_data("label.csv")
+        self.quality_mask = self._retrieve_data("features/signal_quality_index.csv")
+
+        self.sqi_threshold = 0.45
+
+    def _align_and_upsample_acc(self, bvp_df: pd.DataFrame, acc_df: pd.DataFrame) -> pd.DataFrame:
         """
         Synchronizes the 32Hz Accelerometer data to match the 64Hz BVP data.
 
@@ -58,21 +63,54 @@ class DaliaProcessor:
             pd.DataFrame: A fused dataframe containing [BVP, ACC_X, ACC_Y, ACC_Z]
                           sampled uniformly at 64Hz.
         """
-        pass
+        target_length = len(bvp_df)
+        original_length = len(acc_df)
 
-    def _apply_quality_mask(self, window_start_sec: float) -> bool:
+        # Create the time axes for interpolation
+        x_original = np.linspace(0, 1, original_length)
+        x_target = np.linspace(0, 1, target_length)
+
+        # Crate a new array of (N, 3)
+        upsampled_acc = np.zeros((target_length, 3))
+        for col_idx in range(3):
+            # np.interp does simple, straight-line guessing between points
+            upsampled_acc[:, col_idx] = np.interp(
+                x_target,
+                x_original,
+                acc_df.iloc[:, col_idx].values
+            )
+
+        # Convert back to DataFrame
+        acc_upsampled_df = pd.DataFrame(
+            upsampled_acc,
+            columns=['ACC_X', 'ACC_Y', 'ACC_Z'],
+            index=bvp_df.index
+        )
+
+        fused_df = pd.concat([bvp_df, acc_upsampled_df], axis=1)
+
+        return fused_df
+
+    def _apply_quality_mask(self, window_idx: int) -> bool:
         """
         Checks the signal_quality.parquet file to determine if a specific time window
         contains reliable ECG ground truth.
 
         Args:
-            window_start_sec (float): The absolute start time of the window in seconds.
+            window_idx (int): The index of the window.
 
         Returns:
             bool: True if the window passes the quality threshold, False if it
                   should be discarded due to high motion artifact or lost ECG peaks.
         """
-        pass
+        try:
+            current_sqi = self.quality_mask.iloc[window_idx].values[0]
+            return current_sqi >= self.sqi_threshold
+
+        except IndexError:
+            # Safety catch: If the quality file is shorter than the label file
+            print(f"Warning: No quality score found for window {window_idx}.")
+            return False
 
     def get_standardized_windows(self) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -93,36 +131,27 @@ class DaliaProcessor:
                 - y (np.ndarray): The 1D label array for the signal quality index (SQI).
                   Shape: (num_valid_windows)
         """
-        # x filling
-        x_array_bvp = self._fill_arrays(feature="bvp")
-        print(np.array(x_array_bvp).shape)
-        x_array_acc = self._fill_arrays(feature="acc")
-        print(np.array(x_array_acc).shape)
-        x_array = []
+        x_valid = []
+        y_valid = []
 
-        # y filling
-        y_array = self._fill_arrays(feature="sqi")
-        print(np.array(y_array).shape)
+        for window_idx in range(len(self.labels)):
+            # Check quality for this window before extracting data
+            if self._apply_quality_mask(window_idx):
+                # Calculate the starting sample for this specific window
+                step = window_idx * self.step_size
 
-        return np.array(x_array), np.array(y_array)
+                # Extract the data
+                x_window = self.raw_x.iloc[step: step + self.window_size]
+                label = self.labels.iloc[window_idx]
 
-    def _fill_arrays(self, feature) -> list:
+                # Append to valid lists
+                x_valid.append(x_window.values)
+                y_valid.append(label.values)
 
-        data = self.bvp_data if feature == "bvp" else self.acc_data
-        window_size = self.window_size_bvp if feature == "bvp" else self.window_size_acc
-        step_size = self.step_size_bvp if feature == "bvp" else self.step_size_acc
+        # Return as [BVP_array, ACC_array], Y_array for the later 1D CNN
+        return np.array(x_valid), np.array(y_valid)
 
-        array = []
 
-        for step in range(0, len(data) - window_size + 1, step_size):
-            array.append(data.iloc[step:step + window_size])
-
-        return array
-
-    def _retrieve_data(self, typology:str, data_type: str) -> DataFrame:
+    def _retrieve_data(self, typology:str) -> DataFrame:
         path = os.path.join(self.subject_dir, typology)
-        if data_type == "csv":
-            return pd.read_csv(path)
-        elif data_type == "parquet":
-            return pd.read_parquet(path)
-        return pd.DataFrame()
+        return pd.read_csv(path)
