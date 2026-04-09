@@ -6,7 +6,6 @@ placeholder `MultimodalHRNet` class to be implemented with convolutional
 backbones and fusion logic.
 """
 
-import torch
 from torch import nn
 
 
@@ -26,9 +25,9 @@ class MultimodalHRNet(nn.Module):
 
     Example
     -------
-    >>> model = MultimodalHRNet(in_channels=4, sequence_length=512)
-    >>> x = torch.randn(8, 4, 512)
-    >>> out = model(x)  # implement forward to return predictions
+    >>> #model = MultimodalHRNet(in_channels=4, sequence_length=512)
+    >>> #x = torch.randn(8, 4, 512)
+    >>> #out = model(x)  
     """
     def __init__(self):
         super().__init__()
