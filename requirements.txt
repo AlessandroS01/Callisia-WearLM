@@ -1,0 +1,9 @@
+pandas
+matplotlib
+numpy
+neurokit2
+typing_extensions
+torch
+scikit-learn
+pylint
+

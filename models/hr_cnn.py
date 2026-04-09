@@ -1,5 +1,13 @@
+"""Neural network models for heart-rate estimation.
+
+This module provides PyTorch model definitions used for heart-rate
+estimation from bvp and acc wearable sensors. It currently contains a
+placeholder `MultimodalHRNet` class to be implemented with convolutional
+backbones and fusion logic.
+"""
+
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class MultimodalHRNet(nn.Module):
@@ -34,3 +42,22 @@ class MultimodalHRNet(nn.Module):
         super().__init__()
         self.window_length = window_length
         self.in_channels = in_channels
+        print(torch.__version__)
+
+    def forward(self, x):
+        """
+        Defines the forward pass of the model.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (batch_size, in_channels, window_length).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor containing heart-rate predictions or embeddings.
+        """
+        # Implement the forward pass using convolutional layers, activations,
+        # pooling, and fully connected layers as needed.
+        raise NotImplementedError("Forward method not implemented yet.")
