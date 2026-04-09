@@ -22,4 +22,4 @@ def save_csv(attribute: str, output_path: str, data):
     pd.DataFrame(data, columns=[attribute]).to_csv(
         os.path.join(output_path, f"{attribute}.csv"), index=False
     )
-    
+

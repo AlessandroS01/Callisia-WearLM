@@ -134,6 +134,6 @@ class ECGQualityMeasure:
         if true_positives == 0:
             return 0.0
 
-        f1_score = (
-                (2 * true_positives) / ((2 * true_positives) + len(false_positives) + false_negatives))
+        f1_score =((2 * true_positives) /
+                    ((2 * true_positives) + len(false_positives) + false_negatives))
         return f1_score
