@@ -17,7 +17,10 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint
+        # Install runtime dependencies so pylint can resolve imports used in the
+        # project. Adjust this list if your project requires additional packages
+        # (or replace with `pip install -r requirements.txt` if you add one).
+        pip install pylint pandas matplotlib numpy neurokit2 scikit-learn
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py')

@@ -10,7 +10,7 @@ import pickle as pkl
 
 import numpy as np
 import pandas as pd
-from sklearn.utils import deprecated
+from typing_extensions import deprecated
 
 
 class PPGDaliaDatasetHandler:
@@ -134,7 +134,7 @@ class PPGDaliaDatasetHandler:
                 f"Shape: {getattr(value, 'shape', len(value))}"
             )
 
-    @deprecated()
+    @deprecated("Deprecated: kept for backward compatibility")
     def convert_pkl_json(self, json_path_name: str):
         """
             Converts the data from a pickle file to a JSON file and save it under the given path
@@ -152,4 +152,3 @@ class PPGDaliaDatasetHandler:
 
         with open(json_path_name, 'w', encoding='utf-8') as f:
             json.dump(pkl_data, f, default=default_serialize, indent=4)
-

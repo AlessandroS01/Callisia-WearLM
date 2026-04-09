@@ -29,4 +29,3 @@ class ECGProcessMethod(Enum):
     HAMILTON2002 = "hamilton2002"
     ELGENDI2010 = "elgendi2010"
     ENGZEEMOD2012 = "engzeemod2012"
-

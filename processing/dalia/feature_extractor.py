@@ -5,7 +5,7 @@ calculations and RR-interval feature extraction.
 """
 
 from itertools import pairwise
-from warnings import deprecated
+from typing_extensions import deprecated
 
 import pandas as pd
 
@@ -97,5 +97,7 @@ class FeatureExtractor:
 
             print(f"For step {step} the BPM is: {bpm}")
 
-        save_csv("BPM", f"datasets/dalia/converted/{patient}/features", bpm_window)
-
+        save_csv(
+            "BPM",
+            f"datasets/dalia/converted/{patient}/features", bpm_window
+        )
