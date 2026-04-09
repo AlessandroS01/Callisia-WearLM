@@ -96,8 +96,10 @@ class ECGQualityMeasure:
             tolerance: Margin of error (in samples) when matching detected peaks to
                 ground-truth peaks. Defaults to 5% of the sampling rate.
         """
-        cleaned = self.clean_ecg(self.ecg_signal)
-        peaks_list, _ = nk.ecg_peaks(cleaned, sampling_rate=ECG_SAMPLING_RATE)
+        peaks_list, _ = nk.ecg_peaks(
+            self.clean_ecg(self.ecg_signal),
+            sampling_rate=ECG_SAMPLING_RATE
+        )
         detected_peaks = np.where(peaks_list["ECG_R_Peaks"] == 1)[0]
 
         if len(self.true_peaks) == 0 and len(detected_peaks) == 0:
@@ -132,7 +134,6 @@ class ECGQualityMeasure:
         if true_positives == 0:
             return 0.0
 
-        numerator = 2 * true_positives
-        denominator = (2 * true_positives) + len(false_positives) + false_negatives
-        f1_score = numerator / denominator
+        f1_score = (
+                (2 * true_positives) / ((2 * true_positives) + len(false_positives) + false_negatives))
         return f1_score
