@@ -1,3 +1,7 @@
+"""
+    Main entry point for Dalia dataset processing.
+"""
+
 import pandas as pd
 from matplotlib import pyplot as plt
 
@@ -6,6 +10,10 @@ from processing.dalia.processor import DaliaProcessor
 
 
 def main():
+    """
+        Execute the main processing pipeline.
+        Currently, runs window standardization for a specific patient.
+    """
     #extractor()
     processor = DaliaProcessor("datasets/dalia/standardized/S1")
     processor.get_standardized_windows()
@@ -13,6 +21,10 @@ def main():
 
 
 def make_histogram_quality_index():
+    """
+        Aggregate signal quality indices across all patients
+        and plot the distribution as a histogram.
+    """
     quality_scores = []
 
     for i in range(1, 16):
@@ -34,13 +46,20 @@ def make_histogram_quality_index():
     plt.show()
 
 def extractor():
+    """
+        Iterate through patients S1 to S15, initialize the feature extractor,
+        and retrieve/save the signal quality index for each.
+    """
     for i in range(1, 16):
         patient = "S" + str(i)
         r_peaks_path = f"datasets/dalia/standardized/{patient}/rpeaks.csv"
         ecg_path = f"datasets/dalia/standardized/{patient}/chest/chest_ECG.csv"
         fe = FeatureExtractor(r_peaks_path=r_peaks_path, ecg_signal_path=ecg_path)
         print("Doing patient " + str(i))
-        fe.signal_quality_index_retrieval(output_path=f"datasets/dalia/standardized/{patient}/features")
+        fe.signal_quality_index_retrieval(
+            output_path=f"datasets/dalia/standardized/{patient}/features"
+        )
+
 
 if __name__ == '__main__':
     main()

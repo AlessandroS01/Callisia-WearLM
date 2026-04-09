@@ -1,3 +1,9 @@
+"""Feature extraction utilities for the Dalia ECG dataset.
+
+This module provides `FeatureExtractor` which wraps ECG quality
+calculations and RR-interval feature extraction.
+"""
+
 from itertools import pairwise
 from warnings import deprecated
 
@@ -5,12 +11,18 @@ import pandas as pd
 
 from processing.dalia.ecg.ecg_quality_measure import ECGQualityMeasure
 from processing.dalia.utils.csv_saver import save_csv
-from processing.dalia.utils.params.configuration import ECG_SAMPLING_RATE, WINDOW_SIZE_SEC, STEP_SIZE_SEC
+from processing.dalia.utils.params.configuration import (
+    ECG_SAMPLING_RATE,
+    WINDOW_SIZE_SEC,
+    STEP_SIZE_SEC,
+)
 
 
 class FeatureExtractor:
-    """
-        A class to extract features from ECG data, specifically to calculate RR intervals from R-peak indices.
+    """Extract features from ECG recordings.
+
+    Currently, supports RR-interval calculation and reuses
+    `ECGQualityMeasure` for SQI computation.
     """
     def __init__(self, r_peaks_path, ecg_signal_path):
         self.ecg_quality_measure = ECGQualityMeasure(
@@ -18,54 +30,54 @@ class FeatureExtractor:
             ecg_signal_path=ecg_signal_path
         )
 
-    def calculate_rr_intervals(self, r_peaks_data: pd.DataFrame, sampling_rate:int):
-        """
-            Calculate the time interval between each pair of peaks in r_peaks_list
+    def calculate_rr_intervals(self, r_peaks_data: pd.DataFrame):
+        """Return RR intervals (in samples) from R-peak indices.
 
         Args:
-            r_peaks_data: List of R-peak indices
-            sampling_rate: Sampling rate of the ECG data
+            r_peaks_data: DataFrame with a 'rpeaks' column of peak indices
+
+        Returns:
+            List[int]: differences between consecutive R-peak indices.
         """
 
-        r_peaks_list = r_peaks_data['rpeaks'].tolist()
-
+        r_peaks_list = r_peaks_data["rpeaks"].tolist()
         couples = list(pairwise(r_peaks_list))
 
-        rr_intervals = []
-
-        for couple in couples:
-            rr_intervals.append(couple[1] - couple[0])
-
+        rr_intervals = [b - a for a, b in couples]
         return rr_intervals
 
     def signal_quality_index_retrieval(self, output_path):
+        """Delegate SQI computation to `ECGQualityMeasure`.
+
+        Args:
+            output_path: directory where SQI CSV will be saved
+
+        Returns:
+            List of mean SQI values per window.
         """
-            Breaks down the ECG signal into chunks of given time window and calculates the signal quality index (SQI)
-            using the neurokit2 prebuilt function ecg_quality().
 
-            Args:
-                output_path: Directory where the signal quality index will be saved as a csv file
+        return self.ecg_quality_measure.signal_quality_index_retrieval(
+            output_path
+        )
 
-            Returns:
-                A list of tuples, where each tuple contains the step, the corresponding signal quality index for each
-                singular ecg value and the mean of the signal quality index for that chunk
-        """
-        return self.ecg_quality_measure.signal_quality_index_retrieval(output_path)
-
-    @deprecated("No longer needed as SQI gives already this information, and the F1 score is not a good measure for this task")
+    @deprecated("Deprecated: use SQI instead; peak F1 is not recommended")
     def calculate_peaks_f1_score(self):
+        """Deprecated wrapper for peak F1 calculation.
+
+        Returns:
+            float: F1 score computed by `ECGQualityMeasure`.
         """
-            Calculate the F1 score between detected peaks and ground truth peaks.
-            Returns:
-                F1 score
-        """
+
         return self.ecg_quality_measure.calculate_peak_f1()
 
-    @deprecated("The ground truths of the heart rate are already present under the labels.csv file for each patient")
+    @deprecated("BPM ground truths already exist in labels.csv; this is deprecated")
     def calculate_bpm(self, patient):
+        """Compute BPM per window from true R peaks and save as CSV.
+
+        Args:
+            patient: patient identifier used to build output path.
         """
-            Calculate the BPM of the ECG signal and save it in a csv file.
-        """
+
         bpm_window = []
 
         peaks = self.ecg_quality_measure.true_peaks

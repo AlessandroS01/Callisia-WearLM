@@ -1,3 +1,9 @@
+"""Helpers to extract and convert the original PPG-DaLiA dataset.
+
+This module reads the distributed pickle file and exports standardized CSV
+representations for each subject (rpeaks, labels, sensor signals, etc.).
+"""
+
 import json
 import os
 import pickle as pkl
@@ -41,8 +47,6 @@ class PPGDaliaDatasetHandler:
             print("Error: The file content is not a valid pickle format.")
         except EOFError:
             print("Error: The file is incomplete or corrupted.")
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
 
         return None
 
@@ -62,7 +66,7 @@ class PPGDaliaDatasetHandler:
             "questionnaire": pkl_data.get("questionnaire")
         }
 
-        with open(os.path.join(output_dir, "metadata.json"), 'w') as f:
+        with open(os.path.join(output_dir, "metadata.json"), 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=4)
 
         for key in ['rpeaks', 'label', 'activity']:
@@ -84,13 +88,17 @@ class PPGDaliaDatasetHandler:
                         # ‘EDA’, ‘EMG’ and ‘Temp’ only include dummy data and are ignored
                         if str(modality).upper() in ['ECG', 'RESP']:
                             # Convert array to DataFrame and save
+                            filename = f"{signal_name}_{modality}.csv"
+                            out_path = os.path.join(chest_folder, filename)
                             pd.DataFrame(data, columns=[modality]).to_csv(
-                                os.path.join(chest_folder, f"{signal_name}_{modality}.csv"), index=False
+                                out_path, index=False
                             )
                         if str(modality).upper() == 'ACC':
                             # Convert array to DataFrame and save
+                            filename = f"{signal_name}_{modality}.csv"
+                            out_path = os.path.join(chest_folder, filename)
                             pd.DataFrame(data, columns=['x', 'y', 'z']).to_csv(
-                                os.path.join(chest_folder, f"{signal_name}_{modality}.csv"), index=False
+                                out_path, index=False
                             )
 
                 # takes wrist data
@@ -101,22 +109,30 @@ class PPGDaliaDatasetHandler:
                     for modality, data in sensor_data.items():
                         if str(modality).upper() == 'ACC':
                             # Convert array to DataFrame and save
+                            filename = f"{signal_name}_{modality}.csv"
+                            out_path = os.path.join(wrist_folder, filename)
                             pd.DataFrame(data, columns=['x', 'y', 'z']).to_csv(
-                                os.path.join(wrist_folder, f"{signal_name}_{modality}.csv"), index=False
+                                out_path, index=False
                             )
                         else:
+                            filename = f"{signal_name}_{modality}.csv"
+                            out_path = os.path.join(wrist_folder, filename)
                             pd.DataFrame(data, columns=[modality]).to_csv(
-                                os.path.join(wrist_folder, f"{signal_name}_{modality}.csv"), index=False
+                                out_path, index=False
                             )
 
 
     def print_pkl_data_shape(self, data):
+        """Print a short summary (type and shape) for each item in the pickle.
+
+        Args:
+            data: Mapping-like object loaded from the pickle file.
+        """
         for key, value in data.items():
-            print(f""
-                  f"Key: {key}, "
-                  f"Type: {type(value)}, "
-                  f"Shape: {getattr(value, 'shape', len(value))}"
-                  )
+            print(
+                f"Key: {key}, Type: {type(value)}, "
+                f"Shape: {getattr(value, 'shape', len(value))}"
+            )
 
     @deprecated()
     def convert_pkl_json(self, json_path_name: str):
@@ -134,5 +150,6 @@ class PPGDaliaDatasetHandler:
                 return obj.tolist()
             return str(obj)
 
-        with open(json_path_name, 'w') as f:
+        with open(json_path_name, 'w', encoding='utf-8') as f:
             json.dump(pkl_data, f, default=default_serialize, indent=4)
+

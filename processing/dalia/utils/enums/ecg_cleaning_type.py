@@ -1,3 +1,9 @@
+"""ECG cleaning and processing method enumerations.
+
+Lists available cleaning and processing method identifiers used with
+NeuroKit2 within the project.
+"""
+
 from enum import Enum
 
 
@@ -23,3 +29,4 @@ class ECGProcessMethod(Enum):
     HAMILTON2002 = "hamilton2002"
     ELGENDI2010 = "elgendi2010"
     ENGZEEMOD2012 = "engzeemod2012"
+

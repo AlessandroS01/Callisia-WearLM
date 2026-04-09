@@ -1,3 +1,9 @@
+"""Activity type enumeration for the DaLiA dataset.
+
+Defines `ActivityType` enum members with integer IDs and text
+descriptions used by the processing pipeline.
+"""
+
 from enum import Enum
 
 

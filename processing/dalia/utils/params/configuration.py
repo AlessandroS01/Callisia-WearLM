@@ -9,3 +9,4 @@ ACC_SAMPLING_RATE = 32
 # standard parameters
 WINDOW_SIZE_SEC = 8
 STEP_SIZE_SEC = 2
+

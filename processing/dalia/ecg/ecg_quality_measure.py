@@ -1,35 +1,57 @@
+"""ECG quality utilities.
+
+This module provides the `ECGQualityMeasure` class which computes signal
+quality indices (SQI) for ECG data and contains a deprecated helper for
+computing peak-based F1 scores. It uses NeuroKit2 for ECG processing.
+"""
+
+
+
 import neurokit2 as nk
 import numpy as np
 import pandas as pd
 from typing_extensions import deprecated
 
 from processing.dalia.utils.csv_saver import save_csv
-from processing.dalia.utils.params.configuration import ECG_SAMPLING_RATE, WINDOW_SIZE_SEC, STEP_SIZE_SEC
+from processing.dalia.utils.params.configuration import (
+    ECG_SAMPLING_RATE,
+    WINDOW_SIZE_SEC,
+    STEP_SIZE_SEC,
+)
 
 
 class ECGQualityMeasure:
+    """Compute ECG signal quality and related utilities.
+
+    This class provides methods to compute signal quality indices (SQI) on
+    ECG recordings and includes a deprecated helper to compute peak-based
+    F1 scores for diagnostic purposes.
+    """
     def __init__(self, r_peaks_path=None, ecg_signal_path=None):
         """
-            Constructor for the ECGQualityMeasure class that initializes the number of seconds for the time window
+        Constructor for the ECGQualityMeasure class.
 
-            Args:
-                r_peaks_path: Path to the R_peaks ground truth file
-                ecg_signal_path: Path to the ECG signal to be processed
+        Initializes the time window parameters and loads the ECG signal and
+        ground-truth R peaks from CSV files.
+
+        Args:
+            r_peaks_path: Path to the R_peaks ground truth file
+            ecg_signal_path: Path to the ECG signal to be processed
         """
         self.ecg_signal = pd.read_csv(ecg_signal_path).iloc[:, 0]
         self.true_peaks = np.array(pd.read_csv(r_peaks_path))
 
     def signal_quality_index_retrieval(self, output_path):
         """
-            Breaks down the ECG signal into chunks of given time window and calculates the signal quality index (SQI)
-            using the neurokit2 prebuilt function ecg_quality().
+        Break the ECG signal into fixed-size chunks and compute SQI for each.
 
-            Args:
-                output_path: Directory where the signal quality index will be saved as a csv file
+        Uses neurokit2.ecg_quality() on cleaned chunks.
 
-            Returns:
-                A list of tuples, where each tuple contains the step, the corresponding signal quality index for each
-                singular ecg value and the mean of the signal quality index for that chunk
+        Args:
+            output_path: Directory where the SQI values will be saved as a CSV file.
+
+        Returns:
+            A list with the mean SQI value for each processed chunk.
         """
         signal_quality_index = []
         window_size = WINDOW_SIZE_SEC * ECG_SAMPLING_RATE
@@ -46,30 +68,36 @@ class ECGQualityMeasure:
 
             signal_quality_index.append(mean)
 
-        save_csv(attribute="signal_quality_index", output_path=output_path, data=signal_quality_index)
+        save_csv(
+            attribute="signal_quality_index",
+            output_path=output_path,
+            data=signal_quality_index,
+        )
         return signal_quality_index
 
     def clean_ecg(self, ecg_signal):
         """
-            Cleans the ECG signal using the neurokit2 prebuilt function ecg_clean().
+        Clean the ECG signal using neurokit2.ecg_clean().
 
-            Args:
-                ecg_signal: ECG signal to be cleaned
+        Args:
+            ecg_signal: ECG signal to be cleaned
 
-            Returns:
-                The cleaned ECG signal
+        Returns:
+            The cleaned ECG signal
         """
         return nk.ecg_clean(ecg_signal, sampling_rate=ECG_SAMPLING_RATE)
 
-    @deprecated("No longer needed as SQI gives already this information, and the F1 score is not a good measure for this task")
+    @deprecated("Deprecated: use SQI instead; F1 is not recommended")
     def calculate_peak_f1(self, tolerance=int(0.05 * ECG_SAMPLING_RATE)):
         """
-            Calculates F1 score between detected and ground truth peaks.
+        Calculates the F1 score between detected and ground-truth peaks.
 
-            Args:
-                  tolerance: Margin of error when comparing detected peaks with ground truth peaks. Default to 5% of the sampling rate
+        Args:
+            tolerance: Margin of error (in samples) when matching detected peaks to
+                ground-truth peaks. Defaults to 5% of the sampling rate.
         """
-        peaks_list, info = nk.ecg_peaks(self.clean_ecg(self.ecg_signal), sampling_rate=ECG_SAMPLING_RATE)
+        cleaned = self.clean_ecg(self.ecg_signal)
+        peaks_list, _ = nk.ecg_peaks(cleaned, sampling_rate=ECG_SAMPLING_RATE)
         detected_peaks = np.where(peaks_list["ECG_R_Peaks"] == 1)[0]
 
         if len(self.true_peaks) == 0 and len(detected_peaks) == 0:
@@ -82,17 +110,19 @@ class ECGQualityMeasure:
         false_positives = []
 
         for detected_peak in detected_peaks:
-            # Calculate the distance from THIS detected peak to ALL true peaks simultaneously
+            # Distance from this detected peak to all true peaks
             distances = np.abs(self.true_peaks - detected_peak)
 
-            # 2. Find the index of the closest true peak
+            # Find the closest true peak and its value
             closest_idx = np.argmin(distances)
             closest_true_peak_value = self.true_peaks[closest_idx].item()
 
-            # 3. If the closest peak is within tolerance AND hasn't already been matched to another detected peak
-            if distances[closest_idx] <= tolerance and closest_true_peak_value not in matched_ground_truth:
+            within_tol = distances[closest_idx] <= tolerance
+            not_already_matched = closest_true_peak_value not in matched_ground_truth
+
+            if within_tol and not_already_matched:
                 true_positives += 1
-                # Add the true peak value (not the index) to the set so it can't be claimed twice
+                # Prevent the same true peak from being matched twice
                 matched_ground_truth.add(closest_true_peak_value)
             else:
                 false_positives.append(detected_peak)
@@ -102,5 +132,7 @@ class ECGQualityMeasure:
         if true_positives == 0:
             return 0.0
 
-        f1_score = (2 * true_positives) / (2 * true_positives + len(false_positives) + false_negatives)
+        numerator = 2 * true_positives
+        denominator = (2 * true_positives) + len(false_positives) + false_negatives
+        f1_score = numerator / denominator
         return f1_score
