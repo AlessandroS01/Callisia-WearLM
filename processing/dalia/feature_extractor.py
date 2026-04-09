@@ -3,9 +3,9 @@ from warnings import deprecated
 
 import pandas as pd
 
+from processing.dalia.ecg.ecg_quality_measure import ECGQualityMeasure
 from processing.dalia.utils.csv_saver import save_csv
 from processing.dalia.utils.params.configuration import ECG_SAMPLING_RATE, WINDOW_SIZE_SEC, STEP_SIZE_SEC
-from processing.dalia.ecg.ecg_quality_measure import ECGQualityMeasure
 
 
 class FeatureExtractor:

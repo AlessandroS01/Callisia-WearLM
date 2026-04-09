@@ -1,11 +1,10 @@
 import os
 
-import pandas as pd
 import numpy as np
-import scipy
+import pandas as pd
 from pandas import DataFrame
 
-from processing.dalia.utils.params.configuration import BVP_SAMPLING_RATE, ACC_SAMPLING_RATE, WINDOW_SIZE_SEC, \
+from processing.dalia.utils.params.configuration import BVP_SAMPLING_RATE, WINDOW_SIZE_SEC, \
     STEP_SIZE_SEC
 
 

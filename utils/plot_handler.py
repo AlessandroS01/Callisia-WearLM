@@ -1,8 +1,8 @@
 import altair as alt
+import matplotlib.pyplot as plt
 import neurokit2 as nk
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from processing.dalia.utils.enums.ecg_cleaning_type import ECGProcessMethod
 
