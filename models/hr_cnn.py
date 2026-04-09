@@ -19,30 +19,63 @@ class MultimodalHRNet(nn.Module):
     layers are not implemented in this file and should be added to the
     constructor and the `forward` method.
 
-    Parameters
-    ----------
-    in_channels : int
-        Number of input channels (default 4). Typical channels are
-        [BVP, ACC_X, ACC_Y, ACC_Z].
-    window_length : int
-        Length of the input window in samples (default 512).
-
     Input shape
     -----------
     The model expects input tensors of shape ``(batch_size, in_channels,
-    window_length)`` for 1D convolutional processing.
+    sequence_length)`` for 1D convolutional processing.
 
     Example
     -------
-    >>> model = MultimodalHRNet(in_channels=4, window_length=512)
+    >>> model = MultimodalHRNet(in_channels=4, sequence_length=512)
     >>> x = torch.randn(8, 4, 512)
     >>> out = model(x)  # implement forward to return predictions
     """
-    def __init__(self, in_channels = 4, window_length = 512):
+    def __init__(self):
         super().__init__()
-        self.window_length = window_length
-        self.in_channels = in_channels
-        print(torch.__version__)
+
+        # --- FEATURE EXTRACTION BLOCKS (The Convolutional Funnel) ---
+
+        # Block 1: Input (4 channels) -> Output (16 channels)
+        # Kernel set to 7 to catch those fast heartbeat slopes
+        self.block1 = nn.Sequential(
+            nn.Conv1d(in_channels=4, out_channels=16, kernel_size=7, padding=3),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2, stride=2)
+            # Length drops from 512 to 256
+        )
+
+        # Block 2: Input (16) -> Output (32)
+        self.block2 = nn.Sequential(
+            nn.Conv1d(in_channels=16, out_channels=32, kernel_size=5, padding=2),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2, stride=2)
+            # Length drops from 256 to 128
+        )
+
+        # Block 3: Input (32) -> Output (64)
+        self.block3 = nn.Sequential(
+            nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2, stride=2)
+            # Length drops from 128 to 64
+        )
+
+        # --- THE PREDICTION HEAD (From the Paper) ---
+
+        # Flattening size calculation: 64 channels * 64 remaining time steps = 4096
+        self.flatten = nn.Flatten()
+
+        # Fully Connected Layer (n_fc1 in the paper)
+        self.fc1 = nn.Sequential(
+            nn.Linear(in_features=4096, out_features=128),
+            nn.ReLU(),
+        )
+
+        # Dropout (Exactly as paper specified: 0.5)
+        self.dropout = nn.Dropout(p=0.5)
+
+        # Final Fully Connected Layer (n_fc2 = 1 neuron in the paper)
+        self.fc2 = nn.Linear(in_features=128, out_features=1)
 
     def forward(self, x):
         """
@@ -58,6 +91,16 @@ class MultimodalHRNet(nn.Module):
         torch.Tensor
             Output tensor containing heart-rate predictions or embeddings.
         """
-        # Implement the forward pass using convolutional layers, activations,
-        # pooling, and fully connected layers as needed.
-        raise NotImplementedError("Forward method not implemented yet.")
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.block3(x)
+
+        x = self.flatten(x)
+
+        x = self.fc1(x)
+
+        x = self.dropout(x)
+
+        out = self.fc2(x)
+
+        return out.squeeze()  # Return shape (batch_size,) for regression output
