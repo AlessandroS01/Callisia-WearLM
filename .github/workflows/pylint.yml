@@ -14,9 +14,9 @@ jobs:
       matrix:
         python-version: ["3.12", "3.13", "3.14"]
     env:
-      # Use a runner-provided temporary directory for an explicit pip cache
+      # Use a standard temporary directory for an explicit pip cache
       # This avoids re-downloading wheels on every CI run
-      PIP_CACHE_DIR: ${{ runner.temp }}/pip-cache
+      PIP_CACHE_DIR: /tmp/pip-cache
 
     steps:
       - name: Checkout repository
