@@ -14,8 +14,8 @@ class MultimodalHRNet(nn.Module):
     """Multi-modal 1D CNN for heart-rate estimation from wearable sensors.
 
     This class defines a skeleton PyTorch module that fuses multiple sensor
-    channels (for example BVP and tri-axial ACC) and produces a per-window
-    heart-rate prediction or downstream embedding. The concrete network
+    channels (BVP and tri-axial ACC) and produces a per-window
+    heart-rate prediction. The concrete network
     layers are not implemented in this file and should be added to the
     constructor and the `forward` method.
 
