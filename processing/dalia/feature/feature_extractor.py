@@ -9,7 +9,7 @@ from typing_extensions import deprecated
 
 import pandas as pd
 
-from processing.dalia.ecg.ecg_quality_measure import ECGQualityMeasure
+from processing.dalia.feature.ecg_quality_measure import ECGQualityMeasure
 from processing.dalia.utils.csv_saver import save_csv
 from processing.dalia.utils.params.configuration import (
     ECG_SAMPLING_RATE,

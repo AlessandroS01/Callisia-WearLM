@@ -5,7 +5,8 @@
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from processing.dalia.feature_extractor import FeatureExtractor
+from processing.dalia.dataset import DaliaHRDataset
+from processing.dalia.feature.feature_extractor import FeatureExtractor
 from processing.dalia.processor import DaliaProcessor
 
 
@@ -16,7 +17,11 @@ def main():
     """
     #extractor()
     processor = DaliaProcessor("datasets/dalia/standardized/S1")
-    processor.get_standardized_windows()
+    array = processor.get_standardized_windows()
+    print(f"x {array[0].shape}")
+    print(f"y {array[1].shape}")
+    dataset = DaliaHRDataset(array[0], array[1])
+    print(dataset.__getitem__(0)[0].shape)
 
 
 

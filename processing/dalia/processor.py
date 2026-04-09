@@ -35,7 +35,7 @@ class DaliaProcessor:
         labels (pd.DataFrame): DataFrame containing label values. Shape: (N, 1)
         quality_mask (pd.DataFrame): DataFrame containing quality mask values. Shape: (N, 1)
         sqi_threshold (float): Threshold to determine if a specific time window is to be taken
-        """
+    """
 
     def __init__(self, subject_dir: str):
         """
