@@ -5,7 +5,6 @@
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from processing.dalia.dataset import DaliaHRDataset
 from processing.dalia.feature.feature_extractor import FeatureExtractor
 from processing.dalia.processor import DaliaProcessor
 

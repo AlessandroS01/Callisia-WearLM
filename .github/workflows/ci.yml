@@ -10,8 +10,9 @@ jobs:
   lint-and-test:
     runs-on: ubuntu-latest
     env:
-      # Use a runner-provided temporary directory for the pip cache so the path
-      # is cross-platform and writable by the runner. We will cache this path.
+      # Use a runner-provided temporary directory for an explicit pip cache and
+      # also leverage the default pip cache (~/.cache/pip). Restoring either
+      # helps pip avoid re-downloading wheels and speeds up installs.
       PIP_CACHE_DIR: ${{ runner.temp }}/pip-cache
 
     steps:
@@ -26,20 +27,24 @@ jobs:
       - name: Cache pip download cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.PIP_CACHE_DIR }}
+          # Cache both an explicit temp cache and the default pip cache so that
+          # pip can reuse previously downloaded wheels. The cache key is based
+          # on requirements.txt so it will refresh when dependencies change.
+          path: |
+            ${{ env.PIP_CACHE_DIR }}
+            ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install dependencies
+      - name: Install dependencies and tools
         run: |
           python -m pip install --upgrade pip
-          # Install using the runner temp cache to speed up repeated installs
-          pip install --cache-dir "$PIP_CACHE_DIR" -r requirements.txt
+          # Install project requirements and linting tools in a single step so
+          # we only hit the network once; pip will use the restored cache.
+          pip install --cache-dir "$PIP_CACHE_DIR" -r requirements.txt pylint
 
       - name: Run linter
         run: |
-          python -m pip install --upgrade pip
-          pip install pylint
           pylint .
 
