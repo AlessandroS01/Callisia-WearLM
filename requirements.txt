@@ -6,4 +6,4 @@ typing_extensions
 torch
 scikit-learn
 pylint
-
+pyyaml

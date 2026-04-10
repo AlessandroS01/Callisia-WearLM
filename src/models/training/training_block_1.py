@@ -2,11 +2,11 @@
 Module for training the initial 1D CNN for HR estimation from BVP and ACC data.
 """
 
+import os
 import numpy as np
 import torch
 import yaml
 import csv
-import os
 import json
 from datetime import datetime
 import matplotlib.pyplot as plt
@@ -57,15 +57,8 @@ def setup_run_directory(base_dir: str = "history/block_1") -> str:
     return run_dir
 
 
-def save_run_config(
-    run_dir: str,
-    config: dict,
-    learning_rate: float,
-    num_epochs: int,
-    training_patients: list,
-    validation_patients: list,
-    test_patients: list
-):
+def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs: int,
+                    dataset_config: dict):
     """
     Saves training configuration to a JSON file in the run directory.
 
@@ -74,9 +67,7 @@ def save_run_config(
         config: Configuration dictionary
         learning_rate: Learning rate used for training
         num_epochs: Number of epochs
-        training_patients: List of patient IDs used for training
-        validation_patients: List of patient IDs used for validation
-        test_patients: List of patient IDs used for testing
+        dataset_config: Dictionary containing training/validation/test patient splits
     """
     config_data = {
         'timestamp': datetime.now().isoformat(),
@@ -93,12 +84,7 @@ def save_run_config(
             'lr_reduction_factor': 0.5
         },
         'loss_function': 'MSELoss',
-        'dataset': {
-            'training_patients': training_patients,
-            'validation_patients': validation_patients,
-            'test_patients': test_patients,
-            'total_patients': len(training_patients) + len(validation_patients) + len(test_patients)
-        }
+        'dataset': dataset_config
     }
 
     config_path = os.path.join(run_dir, "config.json")
@@ -213,9 +199,10 @@ def setup_training():
     print(f"  Batch size: {batch_size}")
     print(f"  Number of epochs: {num_epochs}\n")
 
-    training_patients = get_split_patients()[0]
-    validation_patients = get_split_patients()[1]
-    test_patients = get_split_patients()[2]
+    patient_splits = get_split_patients()
+    training_patients = patient_splits['training_patients']
+    validation_patients = patient_splits['validation_patients']
+    test_patients = patient_splits['test_patients']
 
     x_train, y_train = prepare_dataset(training_patients, "training")
     x_valid, y_valid = prepare_dataset(validation_patients, "validation")
@@ -314,7 +301,7 @@ def validate(
     num_batches = 0
 
     with torch.no_grad():
-        for batch_idx, (x_batch, y_batch) in enumerate(valid_loader):
+        for _, (x_batch, y_batch) in enumerate(valid_loader):
             x_batch = x_batch.to(device)
             y_batch = y_batch.to(device)
 
@@ -732,9 +719,7 @@ def train():
         load_config(),
         learning_rate,
         num_epochs,
-        get_split_patients()[0],
-        get_split_patients()[1],
-        get_split_patients()[2],
+        get_split_patients(),
     )
 
     # Create model directory for this run
@@ -882,7 +867,7 @@ def get_split_patients():
     Returns the predefined patient splits for training, validation, and testing.
 
     Returns:
-        tuple: A tuple containing:
+        dict: Dictionary containing:
 
             - training_patients (list): List of patient IDs for training
 
@@ -890,11 +875,14 @@ def get_split_patients():
 
             - test_patients (list): List of patient IDs for testing
     """
-    return (
-        ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10"],
-        ["S11", "S12"],
-        ["S13", "S14", "S15"]
-    )
+    return {
+        'training_patients':
+            ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10"],
+        'validation_patients':
+            ["S11", "S12"],
+        'test_patients':
+            ["S13", "S14", "S15"]
+    }
 
 if __name__ == "__main__":
     train()
