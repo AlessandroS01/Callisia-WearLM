@@ -3,12 +3,12 @@ Module for training the initial 1D CNN for HR estimation from BVP and ACC data.
 """
 
 import os
-import numpy as np
-import torch
-import yaml
 import csv
 import json
 from datetime import datetime
+import numpy as np
+import torch
+import yaml
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
@@ -190,23 +190,23 @@ def setup_training():
     """
     # Load configuration
     config = load_config()
-    batch_size = config["batch_size"]
-    learning_rate = config["learning_rate"]
-    num_epochs = config["num_epochs"]
 
-    print(f"Configuration loaded:")
-    print(f"  Learning rate: {learning_rate}")
-    print(f"  Batch size: {batch_size}")
-    print(f"  Number of epochs: {num_epochs}\n")
+    print("Configuration loaded:")
+    print(f"  Learning rate: {config["learning_rate"]}")
+    print(f"  Batch size: {config["batch_size"]}")
+    print(f"  Number of epochs: {config["num_epochs"]}\n")
 
     patient_splits = get_split_patients()
-    training_patients = patient_splits['training_patients']
-    validation_patients = patient_splits['validation_patients']
-    test_patients = patient_splits['test_patients']
 
-    x_train, y_train = prepare_dataset(training_patients, "training")
-    x_valid, y_valid = prepare_dataset(validation_patients, "validation")
-    x_test, y_test = prepare_dataset(test_patients, "test")
+    x_train, y_train = prepare_dataset(
+        patient_splits['training_patients'], "training"
+    )
+    x_valid, y_valid = prepare_dataset(
+        patient_splits['validation_patients'], "validation"
+    )
+    x_test, y_test = prepare_dataset(
+        patient_splits['test_patients'], "test"
+    )
 
     # Create PyTorch datasets
     train_dataset = DaliaHRDataset(x_train, y_train)
@@ -218,19 +218,27 @@ def setup_training():
     print(f"Test dataset size: {len(test_dataset)}\n")
 
     # Create DataLoaders with batch_size from config
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(
+        train_dataset, batch_size=config["batch_size"], shuffle=True
+    )
+    valid_loader = DataLoader(
+        valid_dataset, batch_size=config["batch_size"], shuffle=False
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=config["batch_size"], shuffle=False
+    )
 
     print(f"Training batches: {len(train_loader)}")
     print(f"Validation batches: {len(valid_loader)}")
     print(f"Test batches: {len(test_loader)}\n")
 
-    # Test a batch
-    x_batch, y_batch = next(iter(train_loader))
-    print(f"Sample batch - x shape: {x_batch.shape}, y shape: {y_batch.shape}")
-
-    return train_loader, valid_loader, test_loader, learning_rate, num_epochs
+    return (
+        train_loader,
+        valid_loader,
+        test_loader,
+        config["learning_rate"],
+        config["num_epochs"]
+    )
 
 def train_epoch(
     model,
@@ -484,8 +492,6 @@ def plot_training_history(
 
     except FileNotFoundError:
         print(f"✗ Metrics file not found: {metrics_path}")
-    except Exception as e:
-        print(f"✗ Error creating plot: {e}")
 
 
 def save_test_results(
@@ -697,7 +703,7 @@ def train():
     loss_function = torch.nn.MSELoss()
     print(f"✓ Model: {model.__class__.__name__}")
     print(f"✓ Optimizer: Adam (lr={learning_rate})")
-    print(f"✓ Loss Function: MSELoss\n")
+    print("✓ Loss Function: MSELoss\n")
 
     # Initialize learning rate scheduler
     scheduler = ReduceLROnPlateau(
@@ -707,8 +713,8 @@ def train():
         patience=3,
         min_lr=1e-7
     )
-    print(f"✓ Learning Rate Scheduler: ReduceLROnPlateau")
-    print(f"  - Factor: 0.5, Patience: 3 epochs\n")
+    print("✓ Learning Rate Scheduler: ReduceLROnPlateau")
+    print("  - Factor: 0.5, Patience: 3 epochs\n")
 
     # Create run directory for this training session
     run_dir = setup_run_directory("history/block_1")
@@ -759,7 +765,7 @@ def train():
         improvement = "↓" if avg_val_loss < best_val_loss else "↑"
         loss_diff = abs(avg_val_loss - best_val_loss)
 
-        print(f"\n  Results:")
+        print("\n  Results:")
         print(f"    Train Loss: {avg_train_loss:.4f}")
         print(f"    Val Loss:   {avg_val_loss:.4f} "
               f"    Improvement: {improvement} ({loss_diff:.4f})")
