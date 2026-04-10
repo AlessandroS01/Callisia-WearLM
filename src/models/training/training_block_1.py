@@ -190,11 +190,12 @@ def setup_training():
     """
     # Load configuration
     config = load_config()
+    batch_size = config["batch_size"]
 
     print("Configuration loaded:")
-    print(f"  Learning rate: {config["learning_rate"]}")
-    print(f"  Batch size: {config["batch_size"]}")
-    print(f"  Number of epochs: {config["num_epochs"]}\n")
+    print(f"  Learning rate: {config['learning_rate']}")
+    print(f"  Batch size: {batch_size}")
+    print(f"  Number of epochs: {config['num_epochs']}\n")
 
     patient_splits = get_split_patients()
 
@@ -219,13 +220,13 @@ def setup_training():
 
     # Create DataLoaders with batch_size from config
     train_loader = DataLoader(
-        train_dataset, batch_size=config["batch_size"], shuffle=True
+        train_dataset, batch_size=batch_size, shuffle=True
     )
     valid_loader = DataLoader(
-        valid_dataset, batch_size=config["batch_size"], shuffle=False
+        valid_dataset, batch_size=batch_size, shuffle=False
     )
     test_loader = DataLoader(
-        test_dataset, batch_size=config["batch_size"], shuffle=False
+        test_dataset, batch_size=batch_size, shuffle=False
     )
 
     print(f"Training batches: {len(train_loader)}")
@@ -431,12 +432,10 @@ def plot_training_history(
     - Marks the best model epoch
     """
     try:
-        # Read the CSV file
+        # Read and parse CSV file
         epochs, train_losses, val_losses, best_epochs = [], [], [], []
-
         with open(metrics_path, 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
+            for row in csv.DictReader(csvfile):
                 epochs.append(int(row['epoch']))
                 train_losses.append(float(row['train_loss']))
                 val_losses.append(float(row['val_loss']))
@@ -447,23 +446,20 @@ def plot_training_history(
             print("⚠ No data found in metrics file")
             return
 
-        # Create the plot
+        # Create plot
         _, ax = plt.subplots(figsize=(12, 6))
-
-        # Plot losses
         ax.plot(epochs, train_losses, marker='o', label='Training Loss',
                 linewidth=2, markersize=6, color='#2E86AB')
         ax.plot(epochs, val_losses, marker='s', label='Validation Loss',
                 linewidth=2, markersize=6, color='#A23B72')
 
-        # Mark best model epoch
+        # Mark best model if exists
         if best_epochs:
             best_epoch = best_epochs[-1]
-            best_val_loss = val_losses[best_epoch - 1]
-            ax.plot(best_epoch, best_val_loss, marker='*', markersize=20,
-                   color='#F18F01', label='Best Model', zorder=5)
+            ax.plot(best_epoch, val_losses[best_epoch - 1], marker='*',
+                   markersize=20, color='#F18F01', label='Best Model', zorder=5)
 
-        # Formatting
+        # Configure plot
         ax.set_xlabel('Epoch', fontsize=12, fontweight='bold')
         ax.set_ylabel('Loss (MSE)', fontsize=12, fontweight='bold')
         ax.set_title('Training History - HR Estimation Model',
@@ -472,11 +468,11 @@ def plot_training_history(
         ax.grid(True, alpha=0.3, linestyle='--')
         ax.set_xticks(epochs)
 
-        # Add value labels on points
+        # Add value labels
         for i, (epoch, train_loss, val_loss) in enumerate(
             zip(epochs, train_losses, val_losses)
         ):
-            if i % max(1, len(epochs) // 5) == 0:  # Show every ~5th label
+            if i % max(1, len(epochs) // 5) == 0:
                 ax.text(epoch, train_loss, f'{train_loss:.3f}',
                        fontsize=8, ha='center', va='bottom', color='#2E86AB')
                 ax.text(epoch, val_loss, f'{val_loss:.3f}',
@@ -514,39 +510,35 @@ def save_test_results(
         return {}
 
     try:
-        # Convert to numpy arrays if needed
-        predictions = np.array(predictions)
-        targets = np.array(targets)
-
-        # Calculate metrics
+        predictions, targets = np.array(predictions), np.array(targets)
         mae = mean_absolute_error(targets, predictions)
         rmse = np.sqrt(mean_squared_error(targets, predictions))
         r2 = r2_score(targets, predictions)
+        
         # MAPE with handling for zero values
         with np.errstate(divide='ignore', invalid='ignore'):
             mape = np.mean(np.abs((targets - predictions) / targets)) * 100
             mape = np.nan_to_num(mape, nan=0.0, posinf=0.0, neginf=0.0)
 
-        # Save to CSV
+        # Save results
         with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['sample', 'predicted', 'actual', 'absolute_error',
-                         'percentage_error']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
+            writer = csv.DictWriter(csvfile, 
+                fieldnames=['sample', 'predicted', 'actual', 'absolute_error',
+                           'percentage_error'])
             writer.writeheader()
             for i, (pred, target) in enumerate(zip(predictions, targets)):
                 abs_error = abs(pred - target)
-                pct_error = (abs_error / target * 100) if target != 0 else 0
-
                 writer.writerow({
                     'sample': i + 1,
                     'predicted': round(pred, 4),
                     'actual': round(target, 4),
                     'absolute_error': round(abs_error, 4),
-                    'percentage_error': round(pct_error, 2)
+                    'percentage_error':
+                        round(abs_error / target * 100 if target != 0 else 0, 2)
                 })
 
-        metrics = {
+        print(f"✓ Test results saved to: {output_path}")
+        return {
             'mae': mae,
             'rmse': rmse,
             'r2': r2,
@@ -554,12 +546,64 @@ def save_test_results(
             'num_samples': len(predictions)
         }
 
-        print(f"✓ Test results saved to: {output_path}")
-        return metrics
 
     except (OSError, ValueError) as e:
         print(f"✗ Error saving test results: {e}")
         return {}
+
+
+def _plot_predictions_vs_actual(ax, targets, predictions):
+    """Plot predictions vs actual values with perfect prediction line."""
+    ax.scatter(targets, predictions, alpha=0.6, s=50, color='#2E86AB',
+               edgecolors='black', linewidth=0.5)
+    min_val, max_val = min(targets.min(), predictions.min()), \
+                       max(targets.max(), predictions.max())
+    ax.plot([min_val, max_val], [min_val, max_val], 'r--',
+            linewidth=2, label='Perfect Prediction')
+    ax.set_xlabel('Actual HR (bpm)', fontsize=11, fontweight='bold')
+    ax.set_ylabel('Predicted HR (bpm)', fontsize=11, fontweight='bold')
+    ax.set_title('Predictions vs Actual', fontsize=12, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+
+
+def _plot_residuals(ax, targets, predictions):
+    """Plot residuals plot."""
+    residuals = predictions - targets
+    ax.scatter(targets, residuals, alpha=0.6, s=50, color='#A23B72',
+               edgecolors='black', linewidth=0.5)
+    ax.axhline(y=0, color='r', linestyle='--', linewidth=2)
+    ax.set_xlabel('Actual HR (bpm)', fontsize=11, fontweight='bold')
+    ax.set_ylabel('Residuals (Predicted - Actual)', fontsize=11, fontweight='bold')
+    ax.set_title('Residual Plot', fontsize=12, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+
+
+def _plot_error_distribution(ax, targets, predictions, mae):
+    """Plot error distribution histogram."""
+    errors = np.abs(predictions - targets)
+    ax.hist(errors, bins=30, color='#F18F01', edgecolor='black', alpha=0.7)
+    ax.axvline(mae, color='red', linestyle='--', linewidth=2, label=f"Mean: {mae:.2f}")
+    ax.set_xlabel('Absolute Error (bpm)', fontsize=11, fontweight='bold')
+    ax.set_ylabel('Frequency', fontsize=11, fontweight='bold')
+    ax.set_title('Distribution of Absolute Errors', fontsize=12, fontweight='bold')
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis='y')
+
+
+def _plot_predictions_over_samples(ax, targets, predictions):
+    """Plot predictions vs actual over samples."""
+    sample_indices = np.arange(len(predictions))
+    step = max(1, len(predictions) // 100)
+    ax.plot(sample_indices[::step], targets[::step], marker='o',
+            label='Actual', linewidth=2, markersize=4, color='#2E86AB')
+    ax.plot(sample_indices[::step], predictions[::step], marker='s',
+            label='Predicted', linewidth=2, markersize=4, color='#A23B72', alpha=0.7)
+    ax.set_xlabel('Sample Index', fontsize=11, fontweight='bold')
+    ax.set_ylabel('HR (bpm)', fontsize=11, fontweight='bold')
+    ax.set_title('Predicted vs Actual Over Samples', fontsize=12, fontweight='bold')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
 
 
 def plot_test_results(
@@ -584,67 +628,15 @@ def plot_test_results(
     4. Predicted vs Actual (line plot)
     """
     try:
-        predictions = np.array(predictions)
-        targets = np.array(targets)
-
+        predictions, targets = np.array(predictions), np.array(targets)
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         fig.suptitle('Test Set Analysis - HR Estimation Model',
                     fontsize=16, fontweight='bold', y=1.00)
 
-        # 1. Predictions vs Actual Scatter Plot
-        ax1 = axes[0, 0]
-        ax1.scatter(targets, predictions, alpha=0.6, s=50, color='#2E86AB',
-                   edgecolors='black', linewidth=0.5)
-        # Perfect prediction line
-        min_val = min(targets.min(), predictions.min())
-        max_val = max(targets.max(), predictions.max())
-        ax1.plot([min_val, max_val], [min_val, max_val], 'r--',
-                linewidth=2, label='Perfect Prediction')
-        ax1.set_xlabel('Actual HR (bpm)', fontsize=11, fontweight='bold')
-        ax1.set_ylabel('Predicted HR (bpm)', fontsize=11, fontweight='bold')
-        ax1.set_title('Predictions vs Actual', fontsize=12, fontweight='bold')
-        ax1.grid(True, alpha=0.3)
-        ax1.legend()
-
-        # 2. Residuals Plot
-        ax2 = axes[0, 1]
-        residuals = predictions - targets
-        ax2.scatter(targets, residuals, alpha=0.6, s=50, color='#A23B72',
-                   edgecolors='black', linewidth=0.5)
-        ax2.axhline(y=0, color='r', linestyle='--', linewidth=2)
-        ax2.set_xlabel('Actual HR (bpm)', fontsize=11, fontweight='bold')
-        ax2.set_ylabel('Residuals (Predicted - Actual)', fontsize=11, fontweight='bold')
-        ax2.set_title('Residual Plot', fontsize=12, fontweight='bold')
-        ax2.grid(True, alpha=0.3)
-
-        # 3. Error Distribution
-        ax3 = axes[1, 0]
-        errors = np.abs(predictions - targets)
-        ax3.hist(errors, bins=30, color='#F18F01', edgecolor='black',
-                alpha=0.7)
-        ax3.axvline(metrics['mae'], color='red', linestyle='--', linewidth=2,
-                   label=f"Mean: {metrics['mae']:.2f}")
-        ax3.set_xlabel('Absolute Error (bpm)', fontsize=11, fontweight='bold')
-        ax3.set_ylabel('Frequency', fontsize=11, fontweight='bold')
-        ax3.set_title('Distribution of Absolute Errors', fontsize=12, fontweight='bold')
-        ax3.legend()
-        ax3.grid(True, alpha=0.3, axis='y')
-
-        # 4. Predicted vs Actual Over Samples
-        ax4 = axes[1, 1]
-        sample_indices = np.arange(len(predictions))
-        # Plot every nth sample to avoid clutter
-        step = max(1, len(predictions) // 100)
-        ax4.plot(sample_indices[::step], targets[::step], marker='o',
-                label='Actual', linewidth=2, markersize=4, color='#2E86AB')
-        ax4.plot(sample_indices[::step], predictions[::step], marker='s',
-                label='Predicted', linewidth=2, markersize=4, color='#A23B72',
-                alpha=0.7)
-        ax4.set_xlabel('Sample Index', fontsize=11, fontweight='bold')
-        ax4.set_ylabel('HR (bpm)', fontsize=11, fontweight='bold')
-        ax4.set_title('Predicted vs Actual Over Samples', fontsize=12, fontweight='bold')
-        ax4.legend()
-        ax4.grid(True, alpha=0.3)
+        _plot_predictions_vs_actual(axes[0, 0], targets, predictions)
+        _plot_residuals(axes[0, 1], targets, predictions)
+        _plot_error_distribution(axes[1, 0], targets, predictions, metrics['mae'])
+        _plot_predictions_over_samples(axes[1, 1], targets, predictions)
 
         # Add metrics text box
         metrics_text = (f"MAE: {metrics['mae']:.4f} bpm\n"
