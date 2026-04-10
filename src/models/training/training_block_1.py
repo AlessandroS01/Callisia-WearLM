@@ -520,7 +520,7 @@ def save_test_results(
             mape = np.nan_to_num(mape, nan=0.0, posinf=0.0, neginf=0.0)
         # Save results
         with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.DictWriter(csvfile, 
+            writer = csv.DictWriter(csvfile,
                 fieldnames=['sample', 'predicted', 'actual', 'absolute_error',
                             'percentage_error'])
             writer.writeheader()
@@ -655,15 +655,12 @@ def plot_test_results(
         print(f"✗ Error creating test plots: {e}")
 
 
-def _initialize_training_components(learning_rate, num_epochs, run_dir):
+def _initialize_training_components(learning_rate, run_dir):
     """Initialize model, optimizer, scheduler, and directories."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"✓ Using device: {device}\n")
 
     print("Initializing model, optimizer, and loss function...")
-    model, optimizer = MultimodalHRNet().to(device), \
-                       torch.optim.Adam(MultimodalHRNet().to(device).parameters(),
-                                       lr=learning_rate)
     model = MultimodalHRNet().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     loss_function = torch.nn.MSELoss()
@@ -716,7 +713,7 @@ def _run_training_loop(model, train_loader, valid_loader, optimizer, loss_functi
             is_best = True
             print(f"    ✓ Best model saved! (Val Loss: {best_val_loss:.4f})")
         else:
-            print(f"    • No improvement")
+            print("    • No improvement")
 
         scheduler.step(avg_val_loss)
         epochs_data.append({'epoch': epoch + 1, 'train_loss': round(avg_train_loss, 6),
