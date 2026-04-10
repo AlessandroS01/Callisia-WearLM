@@ -514,17 +514,15 @@ def save_test_results(
         mae = mean_absolute_error(targets, predictions)
         rmse = np.sqrt(mean_squared_error(targets, predictions))
         r2 = r2_score(targets, predictions)
-        
         # MAPE with handling for zero values
         with np.errstate(divide='ignore', invalid='ignore'):
             mape = np.mean(np.abs((targets - predictions) / targets)) * 100
             mape = np.nan_to_num(mape, nan=0.0, posinf=0.0, neginf=0.0)
-
         # Save results
         with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.DictWriter(csvfile, 
                 fieldnames=['sample', 'predicted', 'actual', 'absolute_error',
-                           'percentage_error'])
+                            'percentage_error'])
             writer.writeheader()
             for i, (pred, target) in enumerate(zip(predictions, targets)):
                 abs_error = abs(pred - target)
@@ -657,38 +655,15 @@ def plot_test_results(
         print(f"✗ Error creating test plots: {e}")
 
 
-def train():
-    """
-    Main training function that orchestrates the complete training pipeline.
-
-    This function:
-    1. Sets up the training infrastructure (data loaders, model, optimizer, loss)
-    2. Executes training loop with train, validate, and test epochs
-    3. Saves the best model based on validation loss
-    4. Prints comprehensive training summary
-
-    The pipeline includes:
-    - Training phase: Forward pass, backward propagation, parameter updates
-    - Validation phase: Model evaluation without gradient computation
-    - Testing phase: Final evaluation on held-out test set
-    """
-    print("="*70)
-    print("INITIALIZING TRAINING PIPELINE")
-    print("="*70 + "\n")
-
-    # Setup training infrastructure
-    (train_loader,
-     valid_loader,
-     test_loader,
-     learning_rate,
-     num_epochs) = setup_training()
-
-    # Determine device (GPU if available, otherwise CPU)
+def _initialize_training_components(learning_rate, num_epochs, run_dir):
+    """Initialize model, optimizer, scheduler, and directories."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"\n✓ Using device: {device}\n")
+    print(f"✓ Using device: {device}\n")
 
-    # Initialize model, optimizer, and loss function
     print("Initializing model, optimizer, and loss function...")
+    model, optimizer = MultimodalHRNet().to(device), \
+                       torch.optim.Adam(MultimodalHRNet().to(device).parameters(),
+                                       lr=learning_rate)
     model = MultimodalHRNet().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     loss_function = torch.nn.MSELoss()
@@ -696,167 +671,137 @@ def train():
     print(f"✓ Optimizer: Adam (lr={learning_rate})")
     print("✓ Loss Function: MSELoss\n")
 
-    # Initialize learning rate scheduler
-    scheduler = ReduceLROnPlateau(
-        optimizer,
-        mode='min',
-        factor=0.5,
-        patience=3,
-        min_lr=1e-7
-    )
-    print("✓ Learning Rate Scheduler: ReduceLROnPlateau")
-    print("  - Factor: 0.5, Patience: 3 epochs\n")
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
+                                  patience=3, min_lr=1e-7)
+    print("✓ Learning Rate Scheduler: ReduceLROnPlateau\n")
 
-    # Create run directory for this training session
-    run_dir = setup_run_directory("history/block_1")
-
-    # Save configuration for this run
-    save_run_config(
-        run_dir,
-        load_config(),
-        learning_rate,
-        num_epochs,
-        get_split_patients(),
-    )
-
-    # Create model directory for this run
     model_run_dir = os.path.join("../../../models/block_1", f"{os.path.basename(run_dir)}")
     os.makedirs(model_run_dir, exist_ok=True)
     print(f"✓ Model directory created: {model_run_dir}\n")
 
-    best_val_loss = float('inf')
-    train_losses = []
-    val_losses = []
-    no_improve_count = 0
-    epochs_data = []  # Store data for CSV
+    return device, model, optimizer, loss_function, scheduler, model_run_dir
 
-    # Training loop
+
+def _run_training_loop(model, train_loader, valid_loader, optimizer, loss_function,
+                       device, scheduler, num_epochs, model_run_dir):
+    """Execute training and validation loop."""
+    best_val_loss, epochs_data = float('inf'), []
+    train_losses, val_losses = [], []
+
     print("="*70)
     print("STARTING TRAINING")
     print("="*70 + "\n")
 
     for epoch in range(num_epochs):
-        print(f"{'─'*70}")
-        print(f"Epoch {epoch + 1}/{num_epochs}")
-        print(f"{'─'*70}")
+        print(f"{'─'*70}\nEpoch {epoch + 1}/{num_epochs}\n{'─'*70}")
 
         print("  [1/2] Training phase...")
-        avg_train_loss = train_epoch(
-            model, train_loader, optimizer, loss_function, device
-        )
+        avg_train_loss = train_epoch(model, train_loader, optimizer,
+                                    loss_function, device)
         train_losses.append(avg_train_loss)
 
         print("\n  [2/2] Validation phase...")
-        avg_val_loss = validate(
-            model, valid_loader, loss_function, device
-        )
+        avg_val_loss = validate(model, valid_loader, loss_function, device)
         val_losses.append(avg_val_loss)
 
-        # Calculate improvement
-        improvement = "↓" if avg_val_loss < best_val_loss else "↑"
-        loss_diff = abs(avg_val_loss - best_val_loss)
+        improvement, loss_diff = ("↓" if avg_val_loss < best_val_loss else "↑"), \
+                                 abs(avg_val_loss - best_val_loss)
+        print(f"\n  Results:\n    Train Loss: {avg_train_loss:.4f}")
+        print(f"    Val Loss:   {avg_val_loss:.4f} ({improvement} {loss_diff:.4f})")
 
-        print("\n  Results:")
-        print(f"    Train Loss: {avg_train_loss:.4f}")
-        print(f"    Val Loss:   {avg_val_loss:.4f} "
-              f"    Improvement: {improvement} ({loss_diff:.4f})")
-
-        # Save best model based on validation loss
         is_best = False
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            model_path = os.path.join(model_run_dir, "best_model.pth")
-            torch.save(model.state_dict(), model_path)
-            no_improve_count = 0
+            torch.save(model.state_dict(), os.path.join(model_run_dir, "best_model.pth"))
             is_best = True
             print(f"    ✓ Best model saved! (Val Loss: {best_val_loss:.4f})")
         else:
-            no_improve_count += 1
-            print(f"    • No improvement ({no_improve_count} epochs)")
+            print(f"    • No improvement")
 
-        # Update learning rate scheduler
         scheduler.step(avg_val_loss)
-
-        # Store epoch data for CSV
-        epochs_data.append({
-            'epoch': epoch + 1,
-            'train_loss': round(avg_train_loss, 6),
-            'val_loss': round(avg_val_loss, 6),
-            'best_model': is_best
-        })
-
+        epochs_data.append({'epoch': epoch + 1, 'train_loss': round(avg_train_loss, 6),
+                           'val_loss': round(avg_val_loss, 6), 'best_model': is_best})
         print()
+
+    return train_losses, val_losses, best_val_loss, epochs_data
+
+
+def _save_training_artifacts(run_dir, epochs_data, predictions, targets, test_metrics):
+    """Save all training artifacts and metrics."""
+    print("\n" + "="*70)
+    print("SAVING TRAINING ARTIFACTS")
+    print("="*70)
+    save_training_metrics(epochs_data, os.path.join(run_dir, "training_metrics.csv"))
+    plot_training_history(os.path.join(run_dir, "training_metrics.csv"),
+                         os.path.join(run_dir, "training_history.png"))
+
+    print("\n" + "="*70)
+    print("SAVING TEST RESULTS & ANALYSIS")
+    print("="*70)
+    test_metrics = save_test_results(predictions, targets,
+                                    os.path.join(run_dir, "test_results.csv"))
+
+    if test_metrics:
+        plot_test_results(predictions, targets, test_metrics,
+                         os.path.join(run_dir, "test_analysis.png"))
+        print("\n" + "─"*70)
+        print("TEST PERFORMANCE METRICS")
+        print("─"*70)
+        print(f"  MAE: {test_metrics['mae']:.4f} bpm")
+        print(f"  RMSE: {test_metrics['rmse']:.4f} bpm")
+        print(f"  R²: {test_metrics['r2']:.4f}")
+        print(f"  MAPE: {test_metrics['mape']:.2f}%")
+        print(f"  Samples: {test_metrics['num_samples']}")
+        print("─"*70)
+
+
+def train():
+    """
+    Main training function that orchestrates the complete training pipeline.
+
+    Orchestrates model initialization, training loop, and artifact saving.
+    """
+    print("="*70)
+    print("INITIALIZING TRAINING PIPELINE")
+    print("="*70 + "\n")
+
+    train_loader, valid_loader, test_loader, learning_rate, num_epochs = setup_training()
+
+    run_dir = setup_run_directory("history/block_1")
+    save_run_config(run_dir, load_config(), learning_rate, num_epochs,
+                   get_split_patients())
+
+    device, model, optimizer, loss_function, scheduler, model_run_dir = \
+        _initialize_training_components(learning_rate, num_epochs, run_dir)
+
+    train_losses, val_losses, best_val_loss, epochs_data = \
+        _run_training_loop(model, train_loader, valid_loader, optimizer,
+                          loss_function, device, scheduler, num_epochs, model_run_dir)
 
     print("\n" + "="*70)
     print("TRAINING COMPLETE!")
     print("="*70)
     print("\nStarting Testing Phase...\n")
 
-    # Testing phase
     print("["*35)
     print("  Testing model on held-out test set...")
-    avg_test_loss, predictions, targets = test(
-        model, test_loader, loss_function, device
-    )
+    avg_test_loss, predictions, targets = test(model, test_loader,
+                                               loss_function, device)
     print(f"\n  ✓ Test Loss: {avg_test_loss:.4f}\n")
 
-    # Summary
     print("\n" + "="*70)
     print("TRAINING SUMMARY")
     print("="*70)
-    print(f"  Total Epochs:              {num_epochs}")
-    print(f"  Final Train Loss:          {train_losses[-1]:.4f}")
-    print(f"  Final Val Loss:            {val_losses[-1]:.4f}")
-    print(f"  Best Val Loss:             {best_val_loss:.4f}")
-    print(f"  Test Loss:                 {avg_test_loss:.4f}")
-    print(f"  Test Samples:              {len(predictions)}")
-    print(f"  Model saved to:            {model_run_dir}/best_model.pth")
+    print(f"  Total Epochs: {num_epochs}")
+    print(f"  Final Train Loss: {train_losses[-1]:.4f}")
+    print(f"  Final Val Loss: {val_losses[-1]:.4f}")
+    print(f"  Best Val Loss: {best_val_loss:.4f}")
+    print(f"  Test Loss: {avg_test_loss:.4f}")
+    print(f"  Test Samples: {len(predictions)}")
+    print(f"  Model: {model_run_dir}/best_model.pth")
     print("="*70)
 
-    # Save training metrics to CSV
-    print("\n" + "="*70)
-    print("SAVING TRAINING ARTIFACTS")
-    print("="*70)
-    save_training_metrics(
-        epochs_data,
-        os.path.join(run_dir, "training_metrics.csv")
-    )
-
-    # Generate and save plot
-    plot_training_history(
-        os.path.join(run_dir, "training_metrics.csv"),
-        os.path.join(run_dir, "training_history.png")
-    )
-
-    # Save test results and generate analysis
-    print("\n" + "="*70)
-    print("SAVING TEST RESULTS & ANALYSIS")
-    print("="*70)
-    test_metrics = save_test_results(
-        predictions,
-        targets,
-        os.path.join(run_dir, "test_results.csv")
-    )
-
-    # Generate test analysis plots
-    if test_metrics:
-        plot_test_results(
-            predictions,
-            targets,
-            test_metrics,
-            os.path.join(run_dir, "test_analysis.png")
-        )
-
-        print("\n" + "─"*70)
-        print("TEST PERFORMANCE METRICS")
-        print("─"*70)
-        print(f"  Mean Absolute Error (MAE):       {test_metrics['mae']:.4f} bpm")
-        print(f"  Root Mean Squared Error (RMSE):  {test_metrics['rmse']:.4f} bpm")
-        print(f"  R² Score:                        {test_metrics['r2']:.4f}")
-        print(f"  Mean Absolute Percentage Error:  {test_metrics['mape']:.2f}%")
-        print(f"  Total Test Samples:              {test_metrics['num_samples']}")
-        print("─"*70)
-
+    _save_training_artifacts(run_dir, epochs_data, predictions, targets, None)
     print("="*70 + "\n")
 
 def get_split_patients():
