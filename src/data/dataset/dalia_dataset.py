@@ -5,7 +5,7 @@ Accepts pre-fused 3D tensors containing BVP and ACC channels and formats
 them for 1D Convolutional Neural Networks by applying the necessary transpositions.
 """
 import numpy as np
-from sklearn.externals.array_api_compat import torch
+import torch
 from torch.utils.data import Dataset
 
 
