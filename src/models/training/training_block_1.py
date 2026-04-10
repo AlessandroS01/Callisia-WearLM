@@ -769,7 +769,7 @@ def train():
                    get_split_patients())
 
     device, model, optimizer, loss_function, scheduler, model_run_dir = \
-        _initialize_training_components(learning_rate, num_epochs, run_dir)
+        _initialize_training_components(learning_rate, run_dir)
 
     train_losses, val_losses, best_val_loss, epochs_data = \
         _run_training_loop(model, train_loader, valid_loader, optimizer,
