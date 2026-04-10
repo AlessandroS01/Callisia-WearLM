@@ -6,7 +6,6 @@ typing_extensions
 torch
 scikit-learn
 pylint
-yaml
 matplotlib.pyplot
 sklearn.metrics
 
