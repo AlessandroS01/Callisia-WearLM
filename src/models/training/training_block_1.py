@@ -410,7 +410,7 @@ def save_training_metrics(
             writer.writerows(epochs_data)
 
         print(f"✓ Training metrics saved to: {output_path}")
-    except Exception as e:
+    except OSError as e:
         print(f"✗ Error saving metrics: {e}")
 
 
@@ -432,10 +432,7 @@ def plot_training_history(
     """
     try:
         # Read the CSV file
-        epochs = []
-        train_losses = []
-        val_losses = []
-        best_epochs = []
+        epochs, train_losses, val_losses, best_epochs = [], [], [], []
 
         with open(metrics_path, 'r', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -451,7 +448,7 @@ def plot_training_history(
             return
 
         # Create the plot
-        fig, ax = plt.subplots(figsize=(12, 6))
+        _, ax = plt.subplots(figsize=(12, 6))
 
         # Plot losses
         ax.plot(epochs, train_losses, marker='o', label='Training Loss',
@@ -492,6 +489,8 @@ def plot_training_history(
 
     except FileNotFoundError:
         print(f"✗ Metrics file not found: {metrics_path}")
+    except (IOError, ValueError) as e:
+        print(f"✗ Error creating plot: {e}")
 
 
 def save_test_results(
@@ -558,7 +557,7 @@ def save_test_results(
         print(f"✓ Test results saved to: {output_path}")
         return metrics
 
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"✗ Error saving test results: {e}")
         return {}
 
@@ -654,7 +653,7 @@ def plot_test_results(
                        f"MAPE: {metrics['mape']:.2f}%\n"
                        f"Samples: {metrics['num_samples']}")
         fig.text(0.98, 0.02, metrics_text, fontsize=10, family='monospace',
-                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8),
+                bbox={'boxstyle': 'round', 'facecolor': 'wheat', 'alpha': 0.8},
                 ha='right', va='bottom')
 
         plt.tight_layout()
@@ -662,7 +661,7 @@ def plot_test_results(
         print(f"✓ Test analysis plot saved to: {output_path}")
         plt.close()
 
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"✗ Error creating test plots: {e}")
 
 
