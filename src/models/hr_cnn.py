@@ -38,6 +38,7 @@ class MultimodalHRNet(nn.Module):
         # Kernel set to 7 to catch those fast heartbeat slopes
         self.block1 = nn.Sequential(
             nn.Conv1d(in_channels=4, out_channels=16, kernel_size=7, padding=3),
+            nn.BatchNorm1d(num_features=16),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=2, stride=2)
             # Length drops from 512 to 256
@@ -46,6 +47,7 @@ class MultimodalHRNet(nn.Module):
         # Block 2: Input (16) -> Output (32)
         self.block2 = nn.Sequential(
             nn.Conv1d(in_channels=16, out_channels=32, kernel_size=5, padding=2),
+            nn.BatchNorm1d(num_features=32),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=2, stride=2)
             # Length drops from 256 to 128
@@ -54,6 +56,7 @@ class MultimodalHRNet(nn.Module):
         # Block 3: Input (32) -> Output (64)
         self.block3 = nn.Sequential(
             nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+            nn.BatchNorm1d(num_features=64),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=2, stride=2)
             # Length drops from 128 to 64
@@ -66,15 +69,16 @@ class MultimodalHRNet(nn.Module):
 
         # Fully Connected Layer (n_fc1 in the paper)
         self.fc1 = nn.Sequential(
-            nn.Linear(in_features=4096, out_features=128),
+            nn.Linear(in_features=4096, out_features=512),
+            nn.BatchNorm1d(num_features=512),
             nn.ReLU(),
         )
 
-        # Dropout (Exactly as paper specified: 0.5)
-        self.dropout = nn.Dropout(p=0.5)
+        # Dropout (reduced from 50% to 30% as 50% overkill and prevents learning)
+        self.dropout = nn.Dropout(p=0.2)
 
         # Final Fully Connected Layer (n_fc2 = 1 neuron in the paper)
-        self.fc2 = nn.Linear(in_features=128, out_features=1)
+        self.fc2 = nn.Linear(in_features=512, out_features=1)
 
     def forward(self, x):
         """

@@ -816,11 +816,11 @@ def get_split_patients():
     """
     return {
         'training_patients':
-            ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10"],
+            ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S9", "S10", "S14"],
         'validation_patients':
-            ["S11", "S12"],
+            ["S8", "S12"],
         'test_patients':
-            ["S13", "S14", "S15"]
+            ["S11", "S13", "S15"]
     }
 
 if __name__ == "__main__":
