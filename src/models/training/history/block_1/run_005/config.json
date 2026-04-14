@@ -1,0 +1,39 @@
+{
+    "timestamp": "2026-04-13T17:35:30.435165",
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "num_epochs": 30,
+    "optimizer": "Adam",
+    "scheduler": "ReduceLROnPlateau",
+    "scheduler_params": {
+        "mode": "min",
+        "factor": 0.5,
+        "patience": 3,
+        "min_lr": 1e-07,
+        "lr_reduction_factor": 0.5
+    },
+    "loss_function": "MSELoss",
+    "dataset": {
+        "training_patients": [
+            "S1",
+            "S2",
+            "S3",
+            "S9",
+            "S10",
+            "S11",
+            "S12",
+            "S13",
+            "S14",
+            "S15"
+        ],
+        "validation_patients": [
+            "S7",
+            "S8"
+        ],
+        "test_patients": [
+            "S4",
+            "S5",
+            "S6"
+        ]
+    }
+}

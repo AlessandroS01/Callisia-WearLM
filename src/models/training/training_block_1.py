@@ -669,7 +669,7 @@ def _initialize_training_components(learning_rate, run_dir):
     print("✓ Loss Function: MSELoss\n")
 
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
-                                  patience=3, min_lr=1e-7)
+                                  patience=1, min_lr=1e-7)
     print("✓ Learning Rate Scheduler: ReduceLROnPlateau\n")
 
     model_run_dir = os.path.join("../../../models/block_1", f"{os.path.basename(run_dir)}")
