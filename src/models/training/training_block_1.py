@@ -20,7 +20,7 @@ from src.data.dataset.dalia_dataset import DaliaHRDataset
 from src.models.hr_cnn import MultimodalHRNet
 
 
-def setup_run_directory(base_dir: str = "history/block_1") -> str:
+def setup_run_directory(base_dir: str = "history/block_1/3rd_version") -> str:
     """
     Creates and returns a run-specific directory with incremental numbering.
 
@@ -58,23 +58,40 @@ def setup_run_directory(base_dir: str = "history/block_1") -> str:
 
 
 def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs: int,
-                    dataset_config: dict):
+                    dataset_config: dict, optimizer_config: dict = None,
+                    loss_config: dict = None):
     """
     Saves training configuration to a JSON file in the run directory.
 
     Params:
         run_dir: Path to the run directory
-        config: Configuration dictionary
+        config: Configuration dictionary from config.yaml
         learning_rate: Learning rate used for training
         num_epochs: Number of epochs
         dataset_config: Dictionary containing training/validation/test patient splits
+        optimizer_config: Dictionary with optimizer name and parameters
+        loss_config: Dictionary with loss function name and parameters
+
+    Note:
+        If optimizer_config or loss_config are not provided, defaults are used.
+        These should come from get_optimizer_config() and get_loss_config().
     """
+    # Use defaults if not provided
+    if optimizer_config is None:
+        optimizer_config = get_optimizer_config()
+    if loss_config is None:
+        loss_config = get_loss_config()
+
     config_data = {
         'timestamp': datetime.now().isoformat(),
         'learning_rate': learning_rate,
         'batch_size': config.get('batch_size'),
         'num_epochs': num_epochs,
-        'optimizer': 'Adam',
+        'optimizer': optimizer_config.get('name', 'Adam'),
+        'optimizer_params': {
+            'learning_rate': learning_rate,
+            **optimizer_config.get('params', {})
+        },
         'scheduler': 'ReduceLROnPlateau',
         'scheduler_params': {
             'mode': 'min',
@@ -83,7 +100,8 @@ def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs
             'min_lr': 1e-7,
             'lr_reduction_factor': 0.5
         },
-        'loss_function': 'MSELoss',
+        'loss_function': loss_config.get('name', 'MSELoss'),
+        'loss_function_params': loss_config.get('params', {}),
         'dataset': dataset_config
     }
 
@@ -94,7 +112,7 @@ def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs
     print(f"✓ Configuration saved to: {config_path}")
 
 
-def load_config(config_path: str = "../../../config.yaml") -> dict:
+def load_training_config(config_path: str = "../../../config.yaml") -> dict:
     """
     Loads the configuration from a YAML file.
 
@@ -107,6 +125,42 @@ def load_config(config_path: str = "../../../config.yaml") -> dict:
     with open(config_path, "r", encoding="utf-8") as config_file:
         config = yaml.safe_load(config_file)
     return config
+
+
+def get_optimizer_config() -> dict:
+    """
+    Returns the optimizer configuration.
+
+    Single source of truth for optimizer settings.
+    Update here to propagate changes everywhere.
+
+    Returns:
+        dict: Optimizer configuration with name and parameters
+    """
+    return {
+        'name': 'Adam',
+        'params': {
+            'weight_decay': 1e-4
+        }
+    }
+
+
+def get_loss_config() -> dict:
+    """
+    Returns the loss function configuration.
+
+    Single source of truth for loss function settings.
+    Update here to propagate changes everywhere.
+
+    Returns:
+        dict: Loss function configuration with name and parameters
+    """
+    return {
+        'name': 'SmoothL1Loss',
+        'params': {
+            'beta': 0.5
+        }
+    }
 
 
 def retrieve_patient_data(patient: str) -> tuple[np.ndarray, np.ndarray]:
@@ -189,7 +243,7 @@ def setup_training():
 
     """
     # Load configuration
-    config = load_config()
+    config = load_training_config()
     batch_size = config["batch_size"]
 
     print("Configuration loaded:")
@@ -660,19 +714,40 @@ def _initialize_training_components(learning_rate, run_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"✓ Using device: {device}\n")
 
+    # Get configurations from single source of truth
+    optimizer_cfg = get_optimizer_config()
+    loss_cfg = get_loss_config()
+
     print("Initializing model, optimizer, and loss function...")
     model = MultimodalHRNet().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    loss_function = torch.nn.MSELoss()
+
+    # Create optimizer using configuration
+    if optimizer_cfg['name'] == 'Adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
+                                    **optimizer_cfg['params'])
+    else:
+        raise ValueError(f"Unsupported optimizer: {optimizer_cfg['name']}")
+
+    # Create loss function using configuration
+    if loss_cfg['name'] == 'SmoothL1Loss':
+        loss_function = torch.nn.SmoothL1Loss(**loss_cfg['params'])
+    elif loss_cfg['name'] == 'MSELoss':
+        loss_function = torch.nn.MSELoss()
+    else:
+        raise ValueError(f"Unsupported loss function: {loss_cfg['name']}")
+
     print(f"✓ Model: {model.__class__.__name__}")
-    print(f"✓ Optimizer: Adam (lr={learning_rate})")
-    print("✓ Loss Function: MSELoss\n")
+    print(f"✓ Optimizer: {optimizer_cfg['name']} (lr={learning_rate}, "
+          f"weight_decay={optimizer_cfg['params'].get('weight_decay', 0)})")
+    print(f"✓ Loss Function: {loss_cfg['name']}"
+          f"({', '.join(f'{k}={v}' for k, v in loss_cfg['params'].items())})\n")
 
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
                                   patience=1, min_lr=1e-7)
     print("✓ Learning Rate Scheduler: ReduceLROnPlateau\n")
 
-    model_run_dir = os.path.join("../../../models/block_1", f"{os.path.basename(run_dir)}")
+    model_run_dir = os.path.join("../../../models/block_1/3rd_version",
+                                f"{os.path.basename(run_dir)}")
     os.makedirs(model_run_dir, exist_ok=True)
     print(f"✓ Model directory created: {model_run_dir}\n")
 
@@ -757,6 +832,11 @@ def train():
     Main training function that orchestrates the complete training pipeline.
 
     Orchestrates model initialization, training loop, and artifact saving.
+
+    Configuration is automatically retrieved from:
+    - get_optimizer_config(): Optimizer settings (single source of truth)
+    - get_loss_config(): Loss function settings (single source of truth)
+    - get_split_patients(): Dataset patient splits (single source of truth)
     """
     print("="*70)
     print("INITIALIZING TRAINING PIPELINE")
@@ -764,9 +844,15 @@ def train():
 
     train_loader, valid_loader, test_loader, learning_rate, num_epochs = setup_training()
 
-    run_dir = setup_run_directory("history/block_1")
-    save_run_config(run_dir, load_config(), learning_rate, num_epochs,
-                   get_split_patients())
+    run_dir = setup_run_directory("history/block_1/3rd_version")
+
+    # Get configurations from single sources of truth
+    optimizer_config = get_optimizer_config()
+    loss_config = get_loss_config()
+
+    # Save configuration with actual optimizer and loss settings
+    save_run_config(run_dir, load_training_config(), learning_rate, num_epochs,
+                    get_split_patients(), optimizer_config, loss_config)
 
     device, model, optimizer, loss_function, scheduler, model_run_dir = \
         _initialize_training_components(learning_rate, run_dir)
@@ -816,11 +902,11 @@ def get_split_patients():
     """
     return {
         'training_patients':
-            ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S9", "S10", "S14"],
+            ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10"],
         'validation_patients':
-            ["S8", "S12"],
+            ["S11", "S12"],
         'test_patients':
-            ["S11", "S13", "S15"]
+            ["S13", "S14", "S15"]
     }
 
 if __name__ == "__main__":
