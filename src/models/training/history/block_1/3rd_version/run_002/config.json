@@ -1,0 +1,46 @@
+{
+    "timestamp": "2026-04-15T17:56:27.318062",
+    "learning_rate": 0.0005,
+    "batch_size": 32,
+    "num_epochs": 25,
+    "optimizer": "Adam",
+    "optimizer_params": {
+        "learning_rate": 0.0005,
+        "weight_decay": 0.0001
+    },
+    "scheduler": "ReduceLROnPlateau",
+    "scheduler_params": {
+        "mode": "min",
+        "factor": 0.5,
+        "patience": 3,
+        "min_lr": 1e-07,
+        "lr_reduction_factor": 0.5
+    },
+    "loss_function": "SmoothL1Loss",
+    "loss_function_params": {
+        "beta": 0.5
+    },
+    "dataset": {
+        "training_patients": [
+            "S1",
+            "S2",
+            "S3",
+            "S4",
+            "S5",
+            "S6",
+            "S7",
+            "S8",
+            "S9",
+            "S10"
+        ],
+        "validation_patients": [
+            "S11",
+            "S12"
+        ],
+        "test_patients": [
+            "S13",
+            "S14",
+            "S15"
+        ]
+    }
+}
