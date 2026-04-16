@@ -112,6 +112,45 @@ class BaseDatasetHandler(ABC):
         with open(os.path.join(output_dir, "metadata.json"), 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=4)
 
+    def _load_pickle_file(self, file_path: str):
+        """
+        Load pickle file with common error handling.
+
+        Args:
+            file_path: Path to the pickle file
+
+        Returns:
+            The data loaded from the pickle file, or None if an error occurs.
+        """
+        import pickle as pkl
+        try:
+            with open(file_path, 'rb') as file:
+                data = pkl.load(file, encoding='latin1')
+                self.print_pkl_data_shape(data)
+            return data
+        except FileNotFoundError:
+            print(f"File not found: {file_path}")
+        except pkl.UnpicklingError:
+            print("Error: The file content is not a valid pickle format.")
+        except EOFError:
+            print("Error: The file is incomplete or corrupted.")
+        return None
+
+    def _save_csv_columns(self, pkl_data: dict, output_dir: str, keys: list):
+        """
+        Save specified columns from pickle data as CSV files.
+
+        Args:
+            pkl_data: Dictionary containing the pickle data
+            output_dir: Directory where CSV files will be saved
+            keys: List of keys to extract and save as CSV
+        """
+        for key in keys:
+            if key in pkl_data:
+                pd.DataFrame(pkl_data[key], columns=[key]).to_csv(
+                    os.path.join(output_dir, f"{key}.csv"), index=False
+                )
+
     @abstractmethod
     def read_pkl_dataset(self, **kwargs):
         """

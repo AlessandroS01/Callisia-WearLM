@@ -6,10 +6,7 @@ representations for each subject (rpeaks, labels, sensor signals, etc.).
 
 import json
 import os
-import pickle as pkl
-
 import numpy as np
-import pandas as pd
 from typing_extensions import deprecated
 
 from .base_handler import BaseDatasetHandler
@@ -20,37 +17,14 @@ class PPGDaliaDatasetHandler(BaseDatasetHandler):
         Class to obtain a processed dataset from the original PPG Dalia dataset.
     """
 
-    def __init__(self, path):
+    def read_pkl_dataset(self, **kwargs):
         """
-        Constructor for the DatasetHandler class
+        Reads pickle file
 
-        Args:
-            path: Path to the dataset
+        Returns:
+            The data loaded from the pickle file, or None if an error occurs.
         """
-        super().__init__(path)
-
-    def read_pkl_dataset(self):
-        """
-            Reads pickle file
-
-            Returns:
-                The data loaded from the pickle file, or None if an error occurs.
-        """
-        try:
-            with open(self.path, 'rb') as file:
-                data = pkl.load(file, encoding='latin1')
-
-                self.print_pkl_data_shape(data)
-
-            return data
-        except FileNotFoundError:
-            print(f"File not found: {self.path}")
-        except pkl.UnpicklingError:
-            print("Error: The file content is not a valid pickle format.")
-        except EOFError:
-            print("Error: The file is incomplete or corrupted.")
-
-        return None
+        return self._load_pickle_file(self.path)
 
     def extract_data(self, output_dir: str, **kwargs):
         """
@@ -71,11 +45,7 @@ class PPGDaliaDatasetHandler(BaseDatasetHandler):
         self._save_metadata(output_dir, metadata)
 
         # Save rpeaks, label, and activity
-        for key in ['rpeaks', 'label', 'activity']:
-            if key in pkl_data:
-                pd.DataFrame(pkl_data[key], columns=[key]).to_csv(
-                    os.path.join(output_dir, f"{key}.csv"), index=False
-                )
+        self._save_csv_columns(pkl_data, output_dir, ['rpeaks', 'label', 'activity'])
 
         # Process signal data
         if 'signal' in pkl_data:

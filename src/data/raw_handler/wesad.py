@@ -5,26 +5,14 @@ representations for each subject.
 """
 
 import os
-import pickle as pkl
 import re
-import pandas as pd
 
 from .base_handler import BaseDatasetHandler
-
 
 class WESADDatasetHandler(BaseDatasetHandler):
     """
         Class to obtain a processed dataset from the original WESAD dataset.
     """
-
-    def __init__(self, path):
-        """
-        Constructor for the DatasetHandler class
-
-        Args:
-            path: Path to the dataset
-        """
-        super().__init__(path)
 
     def extract_patient_data(self, patient: str):
         """
@@ -94,32 +82,27 @@ class WESADDatasetHandler(BaseDatasetHandler):
             return match.group(1).strip()
         return None
 
-    def read_pkl_dataset(self, patient: str):
+    def read_pkl_dataset(self, **kwargs):
         """
-            Reads pickle file
+        Reads pickle file
 
-            Args:
-                patient: Patient identifier (e.g., 'S1', 'S2', etc.)
+        Args:
+            **kwargs: Must include 'patient' - Patient identifier (e.g., 'S1', 'S2', etc.)
 
-            Returns:
-                The data loaded from the pickle file, or None if an error occurs.
+        Returns:
+            The data loaded from the pickle file, or None if an error occurs.
+
+        Raises:
+            ValueError: If 'patient' is not provided in kwargs
         """
+        patient = kwargs.get('patient')
+        if not patient or not isinstance(patient, str):
+            raise ValueError(
+                "'patient' parameter is required for WESAD dataset reading"
+            )
+
         pkl_path = os.path.join(self.path, f"{patient}.pkl")
-        try:
-            with open(pkl_path, 'rb') as file:
-                data = pkl.load(file, encoding='latin1')
-
-                self.print_pkl_data_shape(data)
-
-            return data
-        except FileNotFoundError:
-            print(f"File not found: {self.path}")
-        except pkl.UnpicklingError:
-            print("Error: The file content is not a valid pickle format.")
-        except EOFError:
-            print("Error: The file is incomplete or corrupted.")
-
-        return None
+        return self._load_pickle_file(pkl_path)
 
     def extract_data(self, output_dir: str, **kwargs):
         """
@@ -141,7 +124,7 @@ class WESADDatasetHandler(BaseDatasetHandler):
 
         os.makedirs(output_dir, exist_ok=True)
 
-        pkl_data = self.read_pkl_dataset(patient)
+        pkl_data = self.read_pkl_dataset(patient=patient)
         metadata = {
             "subject": pkl_data.get("subject"),
             "questionnaire": self.extract_patient_data(patient)
@@ -149,11 +132,7 @@ class WESADDatasetHandler(BaseDatasetHandler):
 
         self._save_metadata(output_dir, metadata)
 
-        for key in ['label']:
-            if key in pkl_data:
-                pd.DataFrame(pkl_data[key], columns=[key]).to_csv(
-                    os.path.join(output_dir, f"{key}.csv"), index=False
-                )
+        self._save_csv_columns(pkl_data, output_dir, ['label'])
 
         if 'signal' in pkl_data:
             for signal_name, sensor_data in pkl_data['signal'].items():
@@ -165,4 +144,3 @@ class WESADDatasetHandler(BaseDatasetHandler):
                     )
                 else:
                     self._process_wrist_signals(sensor_data, output_dir)
-
