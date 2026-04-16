@@ -6,6 +6,7 @@ DALIA and WESAD datasets
 
 import json
 import os
+import pickle as pkl
 from abc import ABC, abstractmethod
 
 import pandas as pd
@@ -122,7 +123,6 @@ class BaseDatasetHandler(ABC):
         Returns:
             The data loaded from the pickle file, or None if an error occurs.
         """
-        import pickle as pkl
         try:
             with open(file_path, 'rb') as file:
                 data = pkl.load(file, encoding='latin1')
@@ -159,7 +159,6 @@ class BaseDatasetHandler(ABC):
         Returns:
             The data loaded from the pickle file, or None if an error occurs.
         """
-        pass
 
     @abstractmethod
     def extract_data(self, output_dir: str, **kwargs):
@@ -170,4 +169,3 @@ class BaseDatasetHandler(ABC):
         Args:
             output_dir: Directory where the extracted files will be saved
         """
-        pass
