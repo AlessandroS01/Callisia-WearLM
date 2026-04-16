@@ -4,26 +4,27 @@ This module reads the pickle file and exports processed CSV
 representations for each subject.
 """
 
-import json
 import os
 import pickle as pkl
 import re
 import pandas as pd
 
+from .base_handler import BaseDatasetHandler
 
-class WESADDatasetHandler:
+
+class WESADDatasetHandler(BaseDatasetHandler):
     """
         Class to obtain a processed dataset from the original WESAD dataset.
     """
 
     def __init__(self, path):
         """
-            Constructor for the DatasetHandler class
+        Constructor for the DatasetHandler class
 
-            Args:
-                path: Path to the dataset
+        Args:
+            path: Path to the dataset
         """
-        self.path = path
+        super().__init__(path)
 
     def extract_patient_data(self, patient: str):
         """
@@ -85,7 +86,8 @@ class WESADDatasetHandler:
         Returns:
             str: The field value, or None if not found.
         """
-        # Pattern to match "Field_name: value" (handles various formats like "Height (cm): 175" or "Age: 27")
+        # Pattern to match "Field_name: value"
+        # (handles various formats like "Height (cm): 175" or "Age: 27")
         pattern = rf"{field_name}\s*(?:\(.*?\))?\s*:\s*(\w+)"
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
@@ -119,16 +121,25 @@ class WESADDatasetHandler:
 
         return None
 
-    def extract_data(self, output_dir: str, patient: str):
+    def extract_data(self, output_dir: str, **kwargs):
         """
-            Extracts data from the pickle file and saves it in a structured
-            format in the specified output directory for each patient.
+        Extracts data from the pickle file and saves it in a structured
+        format in the specified output directory for each patient.
 
-            Args:
-                output_dir: Directory where the extracted files will be saved
-                patient: Patient identifier (e.g., 'S1', 'S2', etc.)
+        Args:
+            output_dir: Directory where the extracted files will be saved
+            **kwargs: Must include 'patient' - Patient identifier (e.g., 'S1', 'S2', etc.)
+
+        Raises:
+            ValueError: If 'patient' is not provided in kwargs
         """
-        os.mkdir(output_dir)
+        patient = kwargs.get('patient')
+        if not patient or not isinstance(patient, str):
+            raise ValueError(
+                "'patient' parameter is required for WESAD dataset extraction"
+            )
+
+        os.makedirs(output_dir, exist_ok=True)
 
         pkl_data = self.read_pkl_dataset(patient)
         metadata = {
@@ -136,69 +147,22 @@ class WESADDatasetHandler:
             "questionnaire": self.extract_patient_data(patient)
         }
 
-        with open(os.path.join(output_dir, "metadata.json"), 'w', encoding='utf-8') as f:
-            json.dump(metadata, f, indent=4)
+        self._save_metadata(output_dir, metadata)
 
         for key in ['label']:
             if key in pkl_data:
-                # Convert array to DataFrame and save
                 pd.DataFrame(pkl_data[key], columns=[key]).to_csv(
                     os.path.join(output_dir, f"{key}.csv"), index=False
                 )
 
         if 'signal' in pkl_data:
             for signal_name, sensor_data in pkl_data['signal'].items():
-
-                # takes chest data
                 if signal_name == 'chest':
-                    chest_folder = f'{output_dir}/chest'
-                    os.mkdir(chest_folder)
-
-                    for modality, data in sensor_data.items():
-                        if str(modality).upper() in ['ECG', "EMG", "EDA", "TEMP", "RESP"]:
-                            # Convert array to DataFrame and save
-                            filename = f"{signal_name}_{modality}.csv"
-                            out_path = os.path.join(chest_folder, filename)
-                            pd.DataFrame(data, columns=[modality]).to_csv(
-                                out_path, index=False
-                            )
-                        if str(modality).upper() == 'ACC':
-                            # Convert array to DataFrame and save
-                            filename = f"{signal_name}_{modality}.csv"
-                            out_path = os.path.join(chest_folder, filename)
-                            pd.DataFrame(data, columns=['x', 'y', 'z']).to_csv(
-                                out_path, index=False
-                            )
-
-                # takes wrist data
+                    self._process_chest_signals(
+                        sensor_data,
+                        output_dir,
+        ['ECG', 'EMG', 'EDA', 'TEMP', 'RESP']
+                    )
                 else:
-                    wrist_folder = f'{output_dir}/wrist'
-                    os.mkdir(wrist_folder)
+                    self._process_wrist_signals(sensor_data, output_dir)
 
-                    for modality, data in sensor_data.items():
-                        if str(modality).upper() == 'ACC':
-                            # Convert array to DataFrame and save
-                            filename = f"{signal_name}_{modality}.csv"
-                            out_path = os.path.join(wrist_folder, filename)
-                            pd.DataFrame(data, columns=['x', 'y', 'z']).to_csv(
-                                out_path, index=False
-                            )
-                        else:
-                            filename = f"{signal_name}_{modality}.csv"
-                            out_path = os.path.join(wrist_folder, filename)
-                            pd.DataFrame(data, columns=[modality]).to_csv(
-                                out_path, index=False
-                            )
-
-
-    def print_pkl_data_shape(self, data):
-        """Print a short summary (type and shape) for each item in the pickle.
-
-        Args:
-            data: Mapping-like object loaded from the pickle file.
-        """
-        for key, value in data.items():
-            print(
-                f"Key: {key}, Type: {type(value)}, "
-                f"Shape: {getattr(value, 'shape', len(value))}"
-            )
