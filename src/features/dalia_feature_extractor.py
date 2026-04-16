@@ -3,11 +3,14 @@
 This module provides `DaliaFeatureExtractor` which wraps ECG quality
 calculations and RR-interval feature extraction.
 """
-
+import os
 from itertools import pairwise
+
 from typing_extensions import deprecated
 
 import pandas as pd
+
+import neurokit2 as nk
 
 from src.features.dalia_ecg_sqi import DaliaECGQualityMeasure
 from src.utils.csv_saver import save_csv
@@ -45,6 +48,29 @@ class DaliaFeatureExtractor:
 
         rr_intervals = [b - a for a, b in couples]
         return rr_intervals
+
+    def calculate_hrv_intervals(self, patient):
+        """
+        Return HRV intervals (in samples) from R-peak indices.
+
+        Args:
+            patient: patient identifier used to build output path.
+            """
+
+        peaks = self.ecg_quality_measure.true_peaks.flatten()
+        # Calculate only Time and Frequency domains (runs in seconds)
+        hrv_time = nk.hrv_time(peaks, sampling_rate=ECG_SAMPLING_RATE)
+        hrv_freq = nk.hrv_frequency(peaks, sampling_rate=ECG_SAMPLING_RATE)
+
+        # Combine into your final DataFrame
+        hrv = pd.concat([hrv_time, hrv_freq], axis=1)
+
+        # Define your directory
+        output_path = f"../../data/processed/dalia/{patient}/features"
+        # Make sure the directory exists
+        os.makedirs(output_path, exist_ok=True)
+        # Save the DataFrame directly to CSV
+        hrv.to_csv(os.path.join(output_path, "hrv.csv"), index=False)
 
     def signal_quality_index_retrieval(self, output_path):
         """Delegate SQI computation to `ECGQualityMeasure`.
@@ -99,5 +125,6 @@ class DaliaFeatureExtractor:
 
         save_csv(
             "BPM",
-            f"datasets/dalia/converted/{patient}/features", bpm_window
+            f"datasets/dalia/{patient}/features",
+            bpm_window
         )
