@@ -59,9 +59,6 @@ def load_model(device, model_path: str):
     except FileNotFoundError:
         print(f"✗ Model file not found: {model_path}")
         return None
-    except Exception as e:
-        print(f"✗ Error loading model: {e}")
-        return None
 
 
 def run_inference(model, device, test_loader):

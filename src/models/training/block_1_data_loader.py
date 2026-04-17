@@ -33,4 +33,3 @@ class Block1TrainingDataLoader(BlockDataLoader):
             'test_patients':
                 ["S13", "S14", "S15"]
         }
-
