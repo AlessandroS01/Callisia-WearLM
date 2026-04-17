@@ -2,60 +2,22 @@
 Module for training the initial 1D CNN for HR estimation from BVP and ACC data.
 """
 
-import os
 import csv
 import json
+import os
 from datetime import datetime
-import numpy as np
+
+import matplotlib.pyplot as plt
 import torch
 import yaml
-import matplotlib.pyplot as plt
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import DataLoader
 
-from src.data.processors.processor import DaliaProcessor
-from src.data.dataset.dalia_dataset import DaliaHRDataset
+from src.data.dataset.hr_dataset import HRDataset
+from src.models.block_utils import setup_run_directory, save_test_results
+from src.models.evaluation_utils import plot_test_results
 from src.models.hr_cnn import MultimodalHRNet
-
-
-def setup_run_directory(base_dir: str = "history/block_1/3rd_version") -> str:
-    """
-    Creates and returns a run-specific directory with incremental numbering.
-
-    This function:
-    1. Checks existing run directories in base_dir
-    2. Creates a new run directory with the next sequential number
-    3. Returns the path to the new run directory
-
-    Params:
-        base_dir: Base directory where run folders are stored
-
-    Returns:
-        str: Path to the new run directory (e.g., "history/block_1/run_001")
-    """
-    os.makedirs(base_dir, exist_ok=True)
-
-    # Find the highest run number
-    existing_runs = []
-    if os.path.exists(base_dir):
-        for item in os.listdir(base_dir):
-            if item.startswith("run_") and os.path.isdir(os.path.join(base_dir, item)):
-                try:
-                    run_num = int(item.split("_")[1])
-                    existing_runs.append(run_num)
-                except (ValueError, IndexError):
-                    pass
-
-    # Create next run directory
-    next_run_num = max(existing_runs) + 1 if existing_runs else 1
-    run_dir = os.path.join(base_dir, f"run_{next_run_num:03d}")
-    os.makedirs(run_dir, exist_ok=True)
-
-    print(f"✓ Created run directory: {run_dir}")
-    return run_dir
-
+from src.models.training.block_1_data_loader import Block1TrainingDataLoader
 
 def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs: int,
                     dataset_config: dict, optimizer_config: dict = None,
@@ -163,58 +125,6 @@ def get_loss_config() -> dict:
     }
 
 
-def retrieve_patient_data(patient: str) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Extracts input features and labels for the specific patient by using
-    the DaliaProcessor object.
-
-    Params:
-        patient: patient ID string, e.g. "S1", "S2", ..., "S15"
-
-    Returns:
-        tuple: A tuple containing:
-
-            - x (ndarray): The input features for the model, typically
-              a 3D array of shape (num_samples, num_channels, sequence_length)
-              containing [BVP, ACCx, ACCy, ACCz]
-
-            - y (ndarray): The target labels for the model, typically
-              a 1D array of shape (num_samples,) containing the heart rate values.
-    """
-    patient_path = f"../../../data/processed/dalia/{patient}"
-    processor = DaliaProcessor(patient_path)
-    x, y = processor.process()
-
-    return x, y
-
-
-def prepare_dataset(patients: list, dataset_name: str) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Prepares a dataset by combining data from multiple patients.
-
-    Params:
-        patients: list of patient IDs
-        dataset_name: name of the dataset (for logging)
-
-    Returns:
-        tuple: Combined (x, y) arrays for the dataset
-    """
-    x_list, y_list = [], []
-
-    for patient in patients:
-        x, y = retrieve_patient_data(patient)
-        x_list.append(x)
-        y_list.append(y)
-        print(f"{patient} has x shape: {x.shape} and y shape: {y.shape}")
-
-    x_combined = np.concatenate(x_list, axis=0)
-    y_combined = np.concatenate(y_list, axis=0)
-
-    print(f"Combined {dataset_name} data with x shape: {x_combined.shape} and "
-          f"y shape: {y_combined.shape}\n")
-
-    return x_combined, y_combined
-
 
 def setup_training():
     """
@@ -252,21 +162,22 @@ def setup_training():
     print(f"  Number of epochs: {config['num_epochs']}\n")
 
     patient_splits = get_split_patients()
+    loader = Block1TrainingDataLoader()
 
-    x_train, y_train = prepare_dataset(
+    x_train, y_train = loader.prepare_dataset(
         patient_splits['training_patients'], "training"
     )
-    x_valid, y_valid = prepare_dataset(
+    x_valid, y_valid = loader.prepare_dataset(
         patient_splits['validation_patients'], "validation"
     )
-    x_test, y_test = prepare_dataset(
+    x_test, y_test = loader.prepare_dataset(
         patient_splits['test_patients'], "test"
     )
 
     # Create PyTorch datasets
-    train_dataset = DaliaHRDataset(x_train, y_train)
-    valid_dataset = DaliaHRDataset(x_valid, y_valid)
-    test_dataset = DaliaHRDataset(x_test, y_test)
+    train_dataset = HRDataset(x_train, y_train)
+    valid_dataset = HRDataset(x_valid, y_valid)
+    test_dataset = HRDataset(x_test, y_test)
 
     print(f"Training dataset size: {len(train_dataset)}")
     print(f"Validation dataset size: {len(valid_dataset)}")
@@ -543,171 +454,6 @@ def plot_training_history(
         print(f"✗ Error creating plot: {e}")
 
 
-def save_test_results(
-    predictions,
-    targets,
-    output_path: str = "test_results.csv"
-):
-    """
-    Saves test predictions and ground truth to a CSV file.
-
-    Params:
-        predictions: List of model predictions
-        targets: List of ground truth labels
-        output_path: Path to save the CSV file
-
-    Returns:
-        dict: Dictionary with computed metrics
-    """
-    if len(predictions) != len(targets):
-        print("✗ Predictions and targets have different lengths")
-        return {}
-
-    try:
-        predictions, targets = np.array(predictions), np.array(targets)
-        mae = mean_absolute_error(targets, predictions)
-        rmse = np.sqrt(mean_squared_error(targets, predictions))
-        r2 = r2_score(targets, predictions)
-        # MAPE with handling for zero values
-        with np.errstate(divide='ignore', invalid='ignore'):
-            mape = np.mean(np.abs((targets - predictions) / targets)) * 100
-            mape = np.nan_to_num(mape, nan=0.0, posinf=0.0, neginf=0.0)
-        # Save results
-        with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.DictWriter(csvfile,
-                fieldnames=['sample', 'predicted', 'actual', 'absolute_error',
-                            'percentage_error'])
-            writer.writeheader()
-            for i, (pred, target) in enumerate(zip(predictions, targets)):
-                abs_error = abs(pred - target)
-                writer.writerow({
-                    'sample': i + 1,
-                    'predicted': round(pred, 4),
-                    'actual': round(target, 4),
-                    'absolute_error': round(abs_error, 4),
-                    'percentage_error':
-                        round(abs_error / target * 100 if target != 0 else 0, 2)
-                })
-
-        print(f"✓ Test results saved to: {output_path}")
-        return {
-            'mae': mae,
-            'rmse': rmse,
-            'r2': r2,
-            'mape': mape,
-            'num_samples': len(predictions)
-        }
-
-
-    except (OSError, ValueError) as e:
-        print(f"✗ Error saving test results: {e}")
-        return {}
-
-
-def _plot_predictions_vs_actual(ax, targets, predictions):
-    """Plot predictions vs actual values with perfect prediction line."""
-    ax.scatter(targets, predictions, alpha=0.6, s=50, color='#2E86AB',
-               edgecolors='black', linewidth=0.5)
-    min_val, max_val = min(targets.min(), predictions.min()), \
-                       max(targets.max(), predictions.max())
-    ax.plot([min_val, max_val], [min_val, max_val], 'r--',
-            linewidth=2, label='Perfect Prediction')
-    ax.set_xlabel('Actual HR (bpm)', fontsize=11, fontweight='bold')
-    ax.set_ylabel('Predicted HR (bpm)', fontsize=11, fontweight='bold')
-    ax.set_title('Predictions vs Actual', fontsize=12, fontweight='bold')
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-
-
-def _plot_residuals(ax, targets, predictions):
-    """Plot residuals plot."""
-    residuals = predictions - targets
-    ax.scatter(targets, residuals, alpha=0.6, s=50, color='#A23B72',
-               edgecolors='black', linewidth=0.5)
-    ax.axhline(y=0, color='r', linestyle='--', linewidth=2)
-    ax.set_xlabel('Actual HR (bpm)', fontsize=11, fontweight='bold')
-    ax.set_ylabel('Residuals (Predicted - Actual)', fontsize=11, fontweight='bold')
-    ax.set_title('Residual Plot', fontsize=12, fontweight='bold')
-    ax.grid(True, alpha=0.3)
-
-
-def _plot_error_distribution(ax, targets, predictions, mae):
-    """Plot error distribution histogram."""
-    errors = np.abs(predictions - targets)
-    ax.hist(errors, bins=30, color='#F18F01', edgecolor='black', alpha=0.7)
-    ax.axvline(mae, color='red', linestyle='--', linewidth=2, label=f"Mean: {mae:.2f}")
-    ax.set_xlabel('Absolute Error (bpm)', fontsize=11, fontweight='bold')
-    ax.set_ylabel('Frequency', fontsize=11, fontweight='bold')
-    ax.set_title('Distribution of Absolute Errors', fontsize=12, fontweight='bold')
-    ax.legend()
-    ax.grid(True, alpha=0.3, axis='y')
-
-
-def _plot_predictions_over_samples(ax, targets, predictions):
-    """Plot predictions vs actual over samples."""
-    sample_indices = np.arange(len(predictions))
-    step = max(1, len(predictions) // 100)
-    ax.plot(sample_indices[::step], targets[::step], marker='o',
-            label='Actual', linewidth=2, markersize=4, color='#2E86AB')
-    ax.plot(sample_indices[::step], predictions[::step], marker='s',
-            label='Predicted', linewidth=2, markersize=4, color='#A23B72', alpha=0.7)
-    ax.set_xlabel('Sample Index', fontsize=11, fontweight='bold')
-    ax.set_ylabel('HR (bpm)', fontsize=11, fontweight='bold')
-    ax.set_title('Predicted vs Actual Over Samples', fontsize=12, fontweight='bold')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-
-
-def plot_test_results(
-    predictions,
-    targets,
-    metrics: dict,
-    output_path: str = "test_analysis.png"
-):
-    """
-    Creates comprehensive test analysis plots.
-
-    Params:
-        predictions: List of model predictions
-        targets: List of ground truth labels
-        metrics: Dictionary with computed metrics
-        output_path: Path to save the plot image
-
-    Creates a 2x2 subplot showing:
-    1. Predictions vs Actual (scatter plot with perfect prediction line)
-    2. Residuals plot
-    3. Distribution of errors
-    4. Predicted vs Actual (line plot)
-    """
-    try:
-        predictions, targets = np.array(predictions), np.array(targets)
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-        fig.suptitle('Test Set Analysis - HR Estimation Model',
-                    fontsize=16, fontweight='bold', y=1.00)
-
-        _plot_predictions_vs_actual(axes[0, 0], targets, predictions)
-        _plot_residuals(axes[0, 1], targets, predictions)
-        _plot_error_distribution(axes[1, 0], targets, predictions, metrics['mae'])
-        _plot_predictions_over_samples(axes[1, 1], targets, predictions)
-
-        # Add metrics text box
-        metrics_text = (f"MAE: {metrics['mae']:.4f} bpm\n"
-                       f"RMSE: {metrics['rmse']:.4f} bpm\n"
-                       f"R²: {metrics['r2']:.4f}\n"
-                       f"MAPE: {metrics['mape']:.2f}%\n"
-                       f"Samples: {metrics['num_samples']}")
-        fig.text(0.98, 0.02, metrics_text, fontsize=10, family='monospace',
-                bbox={'boxstyle': 'round', 'facecolor': 'wheat', 'alpha': 0.8},
-                ha='right', va='bottom')
-
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        print(f"✓ Test analysis plot saved to: {output_path}")
-        plt.close()
-
-    except (OSError, ValueError) as e:
-        print(f"✗ Error creating test plots: {e}")
-
 
 def _initialize_training_components(learning_rate, run_dir):
     """Initialize model, optimizer, scheduler, and directories."""
@@ -892,22 +638,10 @@ def get_split_patients():
     Returns the predefined patient splits for training, validation, and testing.
 
     Returns:
-        dict: Dictionary containing:
-
-            - training_patients (list): List of patient IDs for training
-
-            - validation_patients (list): List of patient IDs for validation
-
-            - test_patients (list): List of patient IDs for testing
+        dict: Dictionary containing patient splits from the data loader
     """
-    return {
-        'training_patients':
-            ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10"],
-        'validation_patients':
-            ["S11", "S12"],
-        'test_patients':
-            ["S13", "S14", "S15"]
-    }
+    loader = Block1TrainingDataLoader()
+    return loader.get_patients()
 
 if __name__ == "__main__":
     train()

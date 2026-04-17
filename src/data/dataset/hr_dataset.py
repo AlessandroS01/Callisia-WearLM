@@ -1,5 +1,5 @@
 """
-PyTorch Dataset for Dalia multimodal heart rate regression.
+PyTorch Dataset for Dalia and WESAD multimodal heart rate regression.
 
 Accepts pre-fused 3D tensors containing BVP and ACC channels and formats
 them for 1D Convolutional Neural Networks by applying the necessary transpositions.
@@ -9,9 +9,9 @@ import torch
 from torch.utils.data import Dataset
 
 
-class DaliaHRDataset(Dataset):
+class HRDataset(Dataset):
     """
-    PyTorch Dataset for Dalia multimodal heart rate regression.
+    PyTorch Dataset for Dalia and WESAD multimodal heart rate regression.
 
     This dataset handles the formatting of
     synchronized time-series windows from Blood Volume Pulse (BVP) and

@@ -1,6 +1,6 @@
-"""Processing utilities for the DaLiA dataset.
+"""Processing utilities for the DaLiA and WESAD datasets.
 
-This module provides `DaliaProcessor`, which standardizes wearable sensor
+This module provides `WESADDaliaProcessor`, which standardizes wearable sensor
 signals (BVP and ACC), applies sliding windows, and filters windows using
 precomputed ECG signal-quality indices to produce ML-ready tensors.
 """
@@ -18,9 +18,9 @@ from src.utils.dalia_wesad_config import (
 )
 
 
-class DaliaProcessor:
+class WESADDaliaProcessor:
     """
-    Orchestrates the preprocessing of the PPG-DaLiA dataset for 1D-CNN ingestion.
+    Orchestrates the preprocessing of the PPG-DaLiA and WESAD datasets for 1D-CNN ingestion.
 
     This processor handles the temporal synchronization of multi-rate wearable sensors,
     applies sliding window extraction, and filters corrupted segments using a
@@ -28,7 +28,7 @@ class DaliaProcessor:
     into processed ML-ready tensors.
 
     Attributes:
-        subject_dir (str): Path to the base directory of a single DaLiA subject.
+        subject_dir (str): Path to the base directory of a single DaLiA or WESAD subject.
         window_size (int): The size of the window for BVP and upsampled ACC data in samples.
         step_size (int): The step size for sliding windows in BVP and upsampled ACC data in samples.
         raw_x (pd.DataFrame): DataFrame containing BVP and ACC values. Shape: (N, 4)
@@ -37,21 +37,22 @@ class DaliaProcessor:
         sqi_threshold (float): Threshold to determine if a specific time window is to be taken
     """
 
-    def __init__(self, subject_dir: str):
+    def __init__(self, subject_dir: str, dataset_name: str = "Dalia"):
         """
         Initializes the DaliaProcessor with specific windowing parameters.
         """
         self.subject_dir = subject_dir
 
         self.window_size = WINDOW_SIZE_SEC * BVP_SAMPLING_RATE
-
         self.step_size = STEP_SIZE_SEC * BVP_SAMPLING_RATE
 
         bvp_data = self._retrieve_data("wrist/wrist_BVP.csv")
         acc_data = self._retrieve_data("wrist/wrist_ACC.csv")
 
         self.raw_x = self._align_and_upsample_acc(bvp_data, acc_data)
+
         self.labels = self._retrieve_data("label.csv")
+
         self.quality_mask = self._retrieve_data("features/signal_quality_index.csv")
 
         self.sqi_threshold = 0.45

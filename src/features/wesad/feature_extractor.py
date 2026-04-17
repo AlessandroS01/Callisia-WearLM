@@ -48,14 +48,15 @@ class WESADFeatureExtractor(BaseFeatureExtractor):
         return self.folder
 
 
-    def calculate_hr(self):
-        """Compute HR per window from neuropeaks2 and save the list as CSV
-            for each patient.
+    def calculate_hr_sqi(self):
+        """Compute HR and Signal Quality Index (SQI) per window
+        from neuropeaks2 and save the lists as CSV files for each patient.
         """
 
         hr_values = []
-        ecg_path = os.path.join(self.folder, "chest/chest_ECG.csv")
+        sqi = []
 
+        ecg_path = os.path.join(self.folder, "chest/chest_ECG.csv")
         ecg_signal = pd.read_csv(
             ecg_path,
         )['ECG'].values
@@ -64,19 +65,30 @@ class WESADFeatureExtractor(BaseFeatureExtractor):
         step_size = self._get_step_size()
 
         for step in range(0, len(ecg_signal) - window_size + 1, step_size):
-            print(f"Calculating HR for window {step}")
+            print(f"Calculating HR and SQI for window {step}")
             ecg_signal_chunk = ecg_signal[step:step + window_size]
             cleaned_ecg_chunk = self._clean_ecg_signal(ecg_signal_chunk)
+
+            chunk_quality = self.calculate_signal_quality(cleaned_ecg_chunk)
+            sqi.append(chunk_quality)
 
             signals, _ = self._process_ecg_signal(cleaned_ecg_chunk)
 
             hr_list_chunk = signals['ECG_Rate'].values
             hr_values.append(np.mean(hr_list_chunk))
 
+
         csv_path = os.path.join(self.folder, "features")
 
         save_csv(
-            "hr",
-            csv_path,
-            hr_values
+            attribute="signal_quality_index",
+            output_path=csv_path,
+            data=sqi
         )
+
+if __name__ == "__main__":
+    for i in range(13, 18):
+        patient = f"S{i}"
+        print(patient)
+        extractor = WESADFeatureExtractor(patient)
+        extractor.calculate_hr_sqi()

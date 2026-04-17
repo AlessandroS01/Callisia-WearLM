@@ -7,6 +7,7 @@ import os
 from abc import ABC, abstractmethod
 from itertools import pairwise
 
+import numpy as np
 import pandas as pd
 import neurokit2 as nk
 
@@ -95,6 +96,20 @@ class BaseFeatureExtractor(ABC):
         Returns:
             str: Path to the features output directory
         """
+
+    def calculate_signal_quality(self, cleaned_ecg_chunk):
+        """Calculate signal quality index (SQI) for a given ECG signal.
+
+        Args:
+            cleaned_ecg_chunk: Cleaned ECG signal array chunk
+
+        Returns:
+            float: The mean quality for the specific ecg_chunk
+        """
+        quality = nk.ecg_quality(cleaned_ecg_chunk, sampling_rate=self.ECG_SAMPLING_RATE)
+        mean_quality = np.mean(quality)
+        return mean_quality
+
 
     def calculate_hrv_intervals(self):
         """Calculate HRV intervals (time and frequency domain) and save to CSV.
