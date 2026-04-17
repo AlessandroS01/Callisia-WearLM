@@ -4,7 +4,6 @@ This module provides `WESADFeatureExtractor` which takes ECG and gives back
 features like instantaneous heart rate (BPM) and heart rate variability (HRV) metrics.
 """
 import os
-from itertools import pairwise
 
 import numpy as np
 import pandas as pd
@@ -35,7 +34,7 @@ class WESADFeatureExtractor(BaseFeatureExtractor):
 
         # Clean and process the entire ECG signal
         cleaned_ecg = self._clean_ecg_signal(ecg_signal)
-        signals, info = self._process_ecg_signal(cleaned_ecg)
+        _, info = self._process_ecg_signal(cleaned_ecg)
 
         # Extract R-peak indices from the processed signals
         return info['ECG_R_Peaks']
@@ -48,18 +47,6 @@ class WESADFeatureExtractor(BaseFeatureExtractor):
         """
         return self.folder
 
-    def calculate_rr_intervals(self):
-        """Calculate RR intervals (in samples) from R-peak indices.
-
-        Returns:
-            List[int]: differences between consecutive R-peak indices.
-        """
-        rpeaks = self._get_rpeaks()
-        rpeaks_list = sorted(rpeaks)
-        couples = list(pairwise(rpeaks_list))
-
-        rr_intervals = [b - a for a, b in couples]
-        return rr_intervals
 
     def calculate_hr(self):
         """Compute HR per window from neuropeaks2 and save the list as CSV
@@ -81,7 +68,7 @@ class WESADFeatureExtractor(BaseFeatureExtractor):
             ecg_signal_chunk = ecg_signal[step:step + window_size]
             cleaned_ecg_chunk = self._clean_ecg_signal(ecg_signal_chunk)
 
-            signals, info = self._process_ecg_signal(cleaned_ecg_chunk)
+            signals, _ = self._process_ecg_signal(cleaned_ecg_chunk)
 
             hr_list_chunk = signals['ECG_Rate'].values
             hr_values.append(np.mean(hr_list_chunk))

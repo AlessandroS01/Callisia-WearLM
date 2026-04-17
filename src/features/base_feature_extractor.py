@@ -5,6 +5,7 @@ for feature extraction across different ECG datasets.
 """
 import os
 from abc import ABC, abstractmethod
+from itertools import pairwise
 
 import pandas as pd
 import neurokit2 as nk
@@ -119,3 +120,18 @@ class BaseFeatureExtractor(ABC):
         hrv.to_csv(os.path.join(output_path, "hrv.csv"), index=False)
 
         print(f"HRV metrics saved to {os.path.join(output_path, 'hrv.csv')}")
+
+    def calculate_rr_intervals(self):
+        """Calculate RR intervals (in samples) from R-peak indices.
+
+        Returns:
+            List[int]: differences between consecutive R-peak indices.
+        """
+        rpeaks = self._get_rpeaks()
+        rpeaks_list = sorted(rpeaks)
+        couples = list(pairwise(rpeaks_list))
+
+        rr_intervals = [b - a for a, b in couples]
+        return rr_intervals
+
+

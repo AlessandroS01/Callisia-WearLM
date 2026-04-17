@@ -4,7 +4,6 @@ This module provides `DaliaFeatureExtractor` which wraps ECG quality
 calculations and RR-interval feature extraction.
 """
 import os
-from itertools import pairwise
 
 from typing_extensions import deprecated
 
@@ -28,12 +27,13 @@ class DaliaFeatureExtractor(BaseFeatureExtractor):
     Currently, supports RR-interval calculation and reuses
     `ECGQualityMeasure` for SQI computation.
     """
-    def __init__(self, r_peaks_path, ecg_signal_path):
+    def __init__(self, r_peaks_path, ecg_signal_path, patient=None):
         super().__init__()
         self.ecg_quality_measure = DaliaECGQualityMeasure(
             r_peaks_path=r_peaks_path,
             ecg_signal_path=ecg_signal_path
         )
+        self.patient = patient
 
     def _get_rpeaks(self):
         """Get R-peak indices from the Dalia quality measure.
@@ -49,49 +49,9 @@ class DaliaFeatureExtractor(BaseFeatureExtractor):
         Returns:
             str: Path to the output directory
         """
-        # This is a placeholder - subclasses needing patient-specific paths
-        # should override calculate_hrv_intervals or provide patient in init
+        if self.patient:
+            return f"../../data/processed/dalia/{self.patient}"
         return "../../data/processed/dalia/"
-
-    def calculate_rr_intervals(self, r_peaks_data: pd.DataFrame):
-        """Return RR intervals (in samples) from R-peak indices.
-
-        Args:
-            r_peaks_data: DataFrame with a 'rpeaks' column of peak indices
-
-        Returns:
-            List[int]: differences between consecutive R-peak indices.
-        """
-
-        r_peaks_list = r_peaks_data["rpeaks"].tolist()
-        couples = list(pairwise(r_peaks_list))
-
-        rr_intervals = [b - a for a, b in couples]
-        return rr_intervals
-
-    def calculate_hrv_intervals(self, patient):
-        """
-        Calculate HRV intervals (in samples) from R-peak indices.
-
-        Args:
-            patient: patient identifier used to build output path.
-        """
-        # Get R-peaks
-        rpeaks = self._get_rpeaks()
-
-        # Calculate HRV in time and frequency domains
-        hrv_time = nk.hrv_time(rpeaks, sampling_rate=ECG_SAMPLING_RATE)
-        hrv_freq = nk.hrv_frequency(rpeaks, sampling_rate=ECG_SAMPLING_RATE)
-
-        # Combine into your final DataFrame
-        hrv = pd.concat([hrv_time, hrv_freq], axis=1)
-
-        # Define your directory
-        output_path = f"../../data/processed/dalia/{patient}/features"
-        # Make sure the directory exists
-        os.makedirs(output_path, exist_ok=True)
-        # Save the DataFrame directly to CSV
-        hrv.to_csv(os.path.join(output_path, "hrv.csv"), index=False)
 
     def signal_quality_index_retrieval(self, output_path):
         """Delegate SQI computation to `ECGQualityMeasure`.
