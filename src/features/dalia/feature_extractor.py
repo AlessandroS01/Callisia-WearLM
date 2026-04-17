@@ -12,6 +12,7 @@ import pandas as pd
 
 import neurokit2 as nk
 
+from src.features.base_feature_extractor import BaseFeatureExtractor
 from src.features.dalia.ecg_sqi import DaliaECGQualityMeasure
 from src.utils.csv_saver import save_csv
 from src.utils.dalia_wesad_config import (
@@ -21,17 +22,36 @@ from src.utils.dalia_wesad_config import (
 )
 
 
-class DaliaFeatureExtractor:
+class DaliaFeatureExtractor(BaseFeatureExtractor):
     """Extract features from ECG recordings.
 
     Currently, supports RR-interval calculation and reuses
     `ECGQualityMeasure` for SQI computation.
     """
     def __init__(self, r_peaks_path, ecg_signal_path):
+        super().__init__()
         self.ecg_quality_measure = DaliaECGQualityMeasure(
             r_peaks_path=r_peaks_path,
             ecg_signal_path=ecg_signal_path
         )
+
+    def _get_rpeaks(self):
+        """Get R-peak indices from the Dalia quality measure.
+
+        Returns:
+            Array of R-peak indices
+        """
+        return self.ecg_quality_measure.true_peaks.flatten()
+
+    def _get_output_dir(self):
+        """Get the output directory.
+
+        Returns:
+            str: Path to the output directory
+        """
+        # This is a placeholder - subclasses needing patient-specific paths
+        # should override calculate_hrv_intervals or provide patient in init
+        return "../../data/processed/dalia/"
 
     def calculate_rr_intervals(self, r_peaks_data: pd.DataFrame):
         """Return RR intervals (in samples) from R-peak indices.
@@ -51,16 +71,17 @@ class DaliaFeatureExtractor:
 
     def calculate_hrv_intervals(self, patient):
         """
-        Return HRV intervals (in samples) from R-peak indices.
+        Calculate HRV intervals (in samples) from R-peak indices.
 
         Args:
             patient: patient identifier used to build output path.
-            """
+        """
+        # Get R-peaks
+        rpeaks = self._get_rpeaks()
 
-        peaks = self.ecg_quality_measure.true_peaks.flatten()
-        # Calculate only Time and Frequency domains (runs in seconds)
-        hrv_time = nk.hrv_time(peaks, sampling_rate=ECG_SAMPLING_RATE)
-        hrv_freq = nk.hrv_frequency(peaks, sampling_rate=ECG_SAMPLING_RATE)
+        # Calculate HRV in time and frequency domains
+        hrv_time = nk.hrv_time(rpeaks, sampling_rate=ECG_SAMPLING_RATE)
+        hrv_freq = nk.hrv_frequency(rpeaks, sampling_rate=ECG_SAMPLING_RATE)
 
         # Combine into your final DataFrame
         hrv = pd.concat([hrv_time, hrv_freq], axis=1)

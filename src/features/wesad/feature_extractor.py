@@ -4,20 +4,16 @@ This module provides `WESADFeatureExtractor` which takes ECG and gives back
 features like instantaneous heart rate (BPM) and heart rate variability (HRV) metrics.
 """
 import os
-import pandas as pd
+from itertools import pairwise
+
 import numpy as np
+import pandas as pd
 
-import neurokit2 as nk
-
+from src.features.base_feature_extractor import BaseFeatureExtractor
 from src.utils.csv_saver import save_csv
-from src.utils.dalia_wesad_config import (
-    ECG_SAMPLING_RATE,
-    WINDOW_SIZE_SEC,
-    STEP_SIZE_SEC,
-)
 
 
-class WESADFeatureExtractor:
+class WESADFeatureExtractor(BaseFeatureExtractor):
     """Extract features from ECG recordings.
 
     Currently, supports RR-interval calculation and reuses
@@ -25,8 +21,45 @@ class WESADFeatureExtractor:
     """
     def __init__(self, patient):
         """Initialize WESAD feature extractor."""
+        super().__init__()
         self.folder = f"../../../data/processed/wesad/{patient}/"
 
+    def _get_rpeaks(self):
+        """Get R-peak indices by processing the ECG signal.
+
+        Returns:
+            Array of R-peak indices
+        """
+        ecg_path = os.path.join(self.folder, "chest/chest_ECG.csv")
+        ecg_signal = pd.read_csv(ecg_path)['ECG'].values
+
+        # Clean and process the entire ECG signal
+        cleaned_ecg = self._clean_ecg_signal(ecg_signal)
+        signals, info = self._process_ecg_signal(cleaned_ecg)
+
+        # Extract R-peak indices from the processed signals
+        return info['ECG_R_Peaks']
+
+    def _get_output_dir(self):
+        """Get the output directory for WESAD patient.
+
+        Returns:
+            str: Path to the output directory
+        """
+        return self.folder
+
+    def calculate_rr_intervals(self):
+        """Calculate RR intervals (in samples) from R-peak indices.
+
+        Returns:
+            List[int]: differences between consecutive R-peak indices.
+        """
+        rpeaks = self._get_rpeaks()
+        rpeaks_list = sorted(rpeaks)
+        couples = list(pairwise(rpeaks_list))
+
+        rr_intervals = [b - a for a, b in couples]
+        return rr_intervals
 
     def calculate_hr(self):
         """Compute HR per window from neuropeaks2 and save the list as CSV
@@ -40,15 +73,15 @@ class WESADFeatureExtractor:
             ecg_path,
         )['ECG'].values
 
-        window_size = WINDOW_SIZE_SEC * ECG_SAMPLING_RATE
-        step_size = STEP_SIZE_SEC * ECG_SAMPLING_RATE
+        window_size = self._get_window_size()
+        step_size = self._get_step_size()
 
         for step in range(0, len(ecg_signal) - window_size + 1, step_size):
             print(f"Calculating HR for window {step}")
             ecg_signal_chunk = ecg_signal[step:step + window_size]
-            cleaned_ecg_chunk = nk.ecg_clean(ecg_signal_chunk, sampling_rate=ECG_SAMPLING_RATE)
+            cleaned_ecg_chunk = self._clean_ecg_signal(ecg_signal_chunk)
 
-            signals, info = nk.ecg_process(cleaned_ecg_chunk, sampling_rate=ECG_SAMPLING_RATE)
+            signals, info = self._process_ecg_signal(cleaned_ecg_chunk)
 
             hr_list_chunk = signals['ECG_Rate'].values
             hr_values.append(np.mean(hr_list_chunk))
@@ -60,13 +93,3 @@ class WESADFeatureExtractor:
             csv_path,
             hr_values
         )
-
-def main():
-    for i in range(2, 11):
-        patient = f"S{i}"
-        print(f"Processing patient {patient}")
-        extractor = WESADFeatureExtractor(patient)
-
-        extractor.calculate_hr()
-if __name__ == "__main__":
-    main()
