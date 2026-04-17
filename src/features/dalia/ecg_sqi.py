@@ -13,7 +13,7 @@ import pandas as pd
 from typing_extensions import deprecated
 
 from src.utils.csv_saver import save_csv
-from src.utils.dalia_config import (
+from src.utils.dalia_wesad_config import (
     ECG_SAMPLING_RATE,
     WINDOW_SIZE_SEC,
     STEP_SIZE_SEC,
