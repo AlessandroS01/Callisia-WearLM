@@ -3,8 +3,8 @@
 Provides common functions for calculating and displaying test/validation metrics
 across different model blocks.
 """
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 
@@ -52,6 +52,28 @@ def display_metrics(metrics: dict, num_samples: int):
     print(f"  R² Score:                   {metrics['r2']:.4f}")
     print(f"  MAPE (Mean Abs % Error):    {metrics['mape']:.2f}%")
     print(f"  Total Samples:              {num_samples}")
+    print("="*70 + "\n")
+
+
+def print_metrics_summary(metrics: dict, num_samples: int, run_dir: str = None):
+    """
+    Print a summary of metrics in a compact format.
+
+    Params:
+        metrics: Dictionary with 'mae', 'rmse', 'r2', 'mape' keys
+        num_samples: Total number of samples evaluated
+        run_dir: Optional path to the results directory
+    """
+    print("\n" + "="*70)
+    print("TEST SUMMARY")
+    print("="*70)
+    print(f"  MAE: {metrics['mae']:.4f} bpm")
+    print(f"  RMSE: {metrics['rmse']:.4f} bpm")
+    print(f"  R²: {metrics['r2']:.4f}")
+    print(f"  MAPE: {metrics['mape']:.2f}%")
+    print(f"  Samples: {num_samples}")
+    if run_dir:
+        print(f"  Results saved to: {run_dir}")
     print("="*70 + "\n")
 
 

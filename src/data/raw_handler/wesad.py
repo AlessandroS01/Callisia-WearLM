@@ -9,6 +9,7 @@ import re
 
 from .base_handler import BaseDatasetHandler
 
+
 class WESADDatasetHandler(BaseDatasetHandler):
     """
         Class to obtain a processed dataset from the original WESAD dataset.

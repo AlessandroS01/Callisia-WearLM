@@ -15,9 +15,10 @@ from torch.utils.data import DataLoader
 
 from src.data.dataset.hr_dataset import HRDataset
 from src.models.block_utils import setup_run_directory, save_test_results
-from src.models.evaluation_utils import plot_test_results
+from src.models.evaluation_utils import plot_test_results, print_metrics_summary
 from src.models.hr_cnn import MultimodalHRNet
 from src.models.training.block_1_data_loader import Block1TrainingDataLoader
+
 
 def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs: int,
                     dataset_config: dict, optimizer_config: dict = None,
@@ -565,11 +566,7 @@ def _save_training_artifacts(run_dir, epochs_data, predictions, targets, test_me
         print("\n" + "─"*70)
         print("TEST PERFORMANCE METRICS")
         print("─"*70)
-        print(f"  MAE: {test_metrics['mae']:.4f} bpm")
-        print(f"  RMSE: {test_metrics['rmse']:.4f} bpm")
-        print(f"  R²: {test_metrics['r2']:.4f}")
-        print(f"  MAPE: {test_metrics['mape']:.2f}%")
-        print(f"  Samples: {test_metrics['num_samples']}")
+        print_metrics_summary(test_metrics, test_metrics['num_samples'])
         print("─"*70)
 
 

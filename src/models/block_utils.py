@@ -3,11 +3,11 @@
 Provides common functions for data loading, directory management, and result saving
 across different model blocks.
 """
-import os
 import csv
+import os
+
 import numpy as np
 
-from src.data.processors.processor import WESADDaliaProcessor
 from src.models.evaluation_utils import calculate_metrics
 
 
@@ -103,4 +103,3 @@ def save_test_results(
     except (OSError, ValueError) as e:
         print(f"✗ Error saving test results: {e}")
         return {}
-

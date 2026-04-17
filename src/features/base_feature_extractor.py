@@ -7,9 +7,9 @@ import os
 from abc import ABC, abstractmethod
 from itertools import pairwise
 
+import neurokit2 as nk
 import numpy as np
 import pandas as pd
-import neurokit2 as nk
 
 from src.utils.dalia_wesad_config import (
     ECG_SAMPLING_RATE,
@@ -148,5 +148,3 @@ class BaseFeatureExtractor(ABC):
 
         rr_intervals = [b - a for a, b in couples]
         return rr_intervals
-
-

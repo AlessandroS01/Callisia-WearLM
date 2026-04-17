@@ -37,7 +37,7 @@ class WESADDaliaProcessor:
         sqi_threshold (float): Threshold to determine if a specific time window is to be taken
     """
 
-    def __init__(self, subject_dir: str, dataset_name: str = "Dalia"):
+    def __init__(self, subject_dir: str):
         """
         Initializes the DaliaProcessor with specific windowing parameters.
         """

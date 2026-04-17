@@ -52,5 +52,5 @@ jobs:
 
       - name: Run pylint on Python files
         run: |
-          pylint --disable=too-many-arguments,too-many-positional-arguments,too-many-locals, too-few-public-methods $(git ls-files '*.py')
+          pylint --disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-few-public-methods $(git ls-files '*.py')
 

@@ -90,4 +90,3 @@ class BlockDataLoader(ABC):
               f"y shape: {y_combined.shape}\n")
 
         return x_combined, y_combined
-

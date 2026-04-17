@@ -4,17 +4,18 @@ Takes BVP and ACC data and returns HR for a window of 8 seconds
 and step size of 2 seconds
 """
 import os
-import yaml
+
 import numpy as np
 import torch
+import yaml
 from torch.utils.data import DataLoader
 
 from src.data.dataset.hr_dataset import HRDataset
+from src.models.block_utils import setup_run_directory, save_test_results
+from src.models.evaluation_utils import (display_metrics, display_sample_predictions,
+                                         plot_test_results, print_metrics_summary)
 from src.models.hr_cnn import MultimodalHRNet
 from src.models.testing.block_1_data_loader import Block1TestingDataLoader
-from src.models.block_utils import setup_run_directory, save_test_results
-from src.models.evaluation_utils import display_metrics, display_sample_predictions, plot_test_results
-
 
 
 def create_config_file(run_dir: str, model_path: str) -> None:
@@ -30,10 +31,76 @@ def create_config_file(run_dir: str, model_path: str) -> None:
     }
 
     config_path = os.path.join(run_dir, 'config.yaml')
-    with open(config_path, 'w') as f:
+    with open(config_path, 'w', encoding='utf-8') as f:
         yaml.dump(config, f, default_flow_style=False)
 
     print(f"✓ Config file created: {config_path}\n")
+
+
+def load_test_data(patients_list):
+    """Load test dataset and create data loader."""
+    loader = Block1TestingDataLoader()
+    x, y = loader.prepare_dataset(patients_list, 'testing')
+    dataset = HRDataset(x, y)
+    test_loader = DataLoader(dataset, batch_size=32, shuffle=False)
+    print(f"✓ Test batches: {len(test_loader)}\n")
+    return test_loader
+
+
+def load_model(device, model_path: str):
+    """Load model from checkpoint."""
+    print("Loading model from checkpoint...")
+    model = MultimodalHRNet().to(device)
+
+    try:
+        model.load_state_dict(torch.load(model_path, map_location=device))
+        print(f"✓ Model loaded from: {model_path}\n")
+        return model
+    except FileNotFoundError:
+        print(f"✗ Model file not found: {model_path}")
+        return None
+    except Exception as e:
+        print(f"✗ Error loading model: {e}")
+        return None
+
+
+def run_inference(model, device, test_loader):
+    """Run inference on test data."""
+    print("="*70)
+    print("RUNNING INFERENCE")
+    print("="*70 + "\n")
+
+    model.eval()
+    predictions = []
+    targets = []
+
+    with torch.no_grad():
+        for batch_idx, (x_batch, y_batch) in enumerate(test_loader):
+            x_batch = x_batch.to(device)
+            y_batch = y_batch.to(device)
+
+            outputs = model(x_batch)
+
+            predictions.extend(outputs.squeeze().cpu().numpy().tolist())
+            targets.extend(y_batch.squeeze().cpu().numpy().tolist())
+
+            if (batch_idx + 1) % max(1, len(test_loader) // 5) == 0:
+                print(f"  Processed batch [{batch_idx + 1}/{len(test_loader)}]")
+
+    print(f"\n✓ Inference complete - {len(predictions)} samples processed\n")
+    return np.array(predictions), np.array(targets)
+
+
+def display_results(predictions_arr, targets_arr, test_metrics, run_dir):
+    """Display and save test results."""
+    display_metrics(test_metrics, test_metrics['num_samples'])
+    display_sample_predictions(predictions_arr, targets_arr, num_samples=10)
+
+    print("\nGenerating test analysis plot...")
+    plot_test_results(predictions_arr, targets_arr, test_metrics,
+                     output_path=os.path.join(run_dir, "test_analysis.png"))
+
+    print_metrics_summary(test_metrics, test_metrics['num_samples'], run_dir)
 
 
 def test():
@@ -64,80 +131,21 @@ def test():
     print("Loading test data...")
     loader = Block1TestingDataLoader()
     patients_list = loader.get_patients()['testing_patients']
-
-    x, y = loader.prepare_dataset(patients_list, 'testing')
-
-    dataset = HRDataset(x, y)
-    print(f"✓ Test dataset size: {len(dataset)}\n")
-
-    test_loader = DataLoader(dataset, batch_size=32, shuffle=False)
-    print(f"✓ Test batches: {len(test_loader)}\n")
+    test_loader = load_test_data(patients_list)
 
     # Load model
-    print("Loading model from checkpoint...")
-    model = MultimodalHRNet().to(device)
-
-    try:
-        model.load_state_dict(torch.load(model_path, map_location=device))
-        print(f"✓ Model loaded from: {model_path}\n")
-    except FileNotFoundError:
-        print(f"✗ Model file not found: {model_path}")
-        return
-    except Exception as e:
-        print(f"✗ Error loading model: {e}")
+    model = load_model(device, model_path)
+    if model is None:
         return
 
-    # Test the model
-    print("="*70)
-    print("RUNNING INFERENCE")
-    print("="*70 + "\n")
-
-    model.eval()
-    predictions = []
-    targets = []
-
-    with torch.no_grad():
-        for batch_idx, (x_batch, y_batch) in enumerate(test_loader):
-            x_batch = x_batch.to(device)
-            y_batch = y_batch.to(device)
-
-            outputs = model(x_batch)
-
-            predictions.extend(outputs.squeeze().cpu().numpy().tolist())
-            targets.extend(y_batch.squeeze().cpu().numpy().tolist())
-
-            if (batch_idx + 1) % max(1, len(test_loader) // 5) == 0:
-                print(f"  Processed batch [{batch_idx + 1}/{len(test_loader)}]")
-
-    print(f"\n✓ Inference complete - {len(predictions)} samples processed\n")
-
-    predictions_arr = np.array(predictions)
-    targets_arr = np.array(targets)
+    # Run inference
+    predictions_arr, targets_arr = run_inference(model, device, test_loader)
 
     # Calculate and save metrics
     test_metrics = save_test_results(predictions_arr, targets_arr, run_dir)
 
     if test_metrics:
-        # Display metrics
-        display_metrics(test_metrics, test_metrics['num_samples'])
-        display_sample_predictions(predictions_arr, targets_arr, num_samples=10)
-
-        # Generate comprehensive analysis plot and save
-        print("\nGenerating test analysis plot...")
-        plot_test_results(predictions_arr, targets_arr, test_metrics,
-                         output_path=os.path.join(run_dir, "test_analysis.png"))
-
-        # Print summary
-        print("\n" + "="*70)
-        print("TEST SUMMARY")
-        print("="*70)
-        print(f"  MAE: {test_metrics['mae']:.4f} bpm")
-        print(f"  RMSE: {test_metrics['rmse']:.4f} bpm")
-        print(f"  R²: {test_metrics['r2']:.4f}")
-        print(f"  MAPE: {test_metrics['mape']:.2f}%")
-        print(f"  Samples: {test_metrics['num_samples']}")
-        print(f"  Results saved to: {run_dir}")
-        print("="*70 + "\n")
+        display_results(predictions_arr, targets_arr, test_metrics, run_dir)
 
 
 if __name__ == "__main__":

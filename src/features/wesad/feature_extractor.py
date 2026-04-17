@@ -85,10 +85,3 @@ class WESADFeatureExtractor(BaseFeatureExtractor):
             output_path=csv_path,
             data=sqi
         )
-
-if __name__ == "__main__":
-    for i in range(13, 18):
-        patient = f"S{i}"
-        print(patient)
-        extractor = WESADFeatureExtractor(patient)
-        extractor.calculate_hr_sqi()
