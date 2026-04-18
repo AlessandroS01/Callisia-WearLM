@@ -113,7 +113,8 @@ def test(model, test_loader, loss_function, device):
                 print(f"    Batch [{batch_idx + 1}/{len(test_loader)}] - Loss: {loss.item():.4f}")
 
     avg_loss = test_loss / num_batches
-    print(f"  Test completed - Processed {num_batches} batches with {len(all_predictions)} total samples")
+    print(f"Test completed - "
+          f"Processed {num_batches} batches with {len(all_predictions)} total samples")
 
     return avg_loss, all_predictions, all_targets
 
@@ -188,7 +189,7 @@ class TrainingStrategy:
 
         # Train model with validation
         print("Training model...")
-        train_losses, val_losses, best_val_loss, epochs_data = \
+        _, _, _, epochs_data = \
             self._run_training_loop(model, train_loader, valid_loader, optimizer,
                                   loss_function, device, scheduler, model_run_dir)
         print()
@@ -242,11 +243,16 @@ class TrainingStrategy:
             train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
             valid_loader = DataLoader(valid_dataset, batch_size=self.batch_size, shuffle=False)
             test_loader = DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
-            print(f"Train: {len(train_dataset)}, Val: {len(valid_dataset)}, Test: {len(test_dataset)}\n")
+            print(f"Train: {len(train_dataset)}, "
+                  f"Val: {len(valid_dataset)}, Test: {len(test_dataset)}\n")
 
             # Create fold directories
-            history_fold_dir = str(os.path.join(self.run_dir or "", f"fold_{fold_idx:02d}_{test_subject}"))
-            models_fold_dir = str(os.path.join(models_run_dir, f"fold_{fold_idx:02d}_{test_subject}"))
+            history_fold_dir = str(
+                os.path.join(self.run_dir or "", f"fold_{fold_idx:02d}_{test_subject}")
+            )
+            models_fold_dir = str(
+                os.path.join(models_run_dir, f"fold_{fold_idx:02d}_{test_subject}")
+            )
             os.makedirs(history_fold_dir, exist_ok=True)
             os.makedirs(models_fold_dir, exist_ok=True)
 
@@ -258,7 +264,7 @@ class TrainingStrategy:
 
             # Train
             print("Training...")
-            train_losses, val_losses, best_val_loss, epochs_data = \
+            _, _, _, epochs_data = \
                 self._run_training_loop(model, train_loader, valid_loader, optimizer,
                                       loss_function, device, scheduler, models_fold_dir)
             print()
@@ -276,7 +282,9 @@ class TrainingStrategy:
             print(f"Test MAE: {test_metrics.get('mae', 0):.4f} bpm\n")
 
             # Save fold artifacts
-            self._save_fold_artifacts(history_fold_dir, epochs_data, predictions, targets, test_metrics)
+            self._save_fold_artifacts(
+                history_fold_dir, epochs_data, predictions, targets, test_metrics
+            )
             print()
 
             fold_results.append({
@@ -300,8 +308,9 @@ class TrainingStrategy:
         if self.optimizer_config.get('name') == 'Adam':
             return torch.optim.Adam(model.parameters(), lr=self.learning_rate,
                                    **self.optimizer_config.get('params', {}))
-        else:
-            raise ValueError(f"Unsupported optimizer: {self.optimizer_config.get('name')}")
+
+        raise ValueError(f"Unsupported optimizer: {self.optimizer_config.get('name')}")
+
 
     def _initialize_loss_and_scheduler(self, optimizer) -> Tuple:
         """Initialize loss function and scheduler. Returns (loss_function, scheduler)."""
@@ -408,7 +417,7 @@ class TrainingStrategy:
         }
 
     def _prepare_loso_datasets(self, loader: Block1TrainingDataLoader,
-                              split: Dict[str, List[str]]) -> Tuple[HRDataset, HRDataset, HRDataset]:
+                        split: Dict[str, List[str]]) -> Tuple[HRDataset, HRDataset, HRDataset]:
         """Prepare PyTorch datasets for one LOSO fold."""
         x_train, y_train = loader.prepare_dataset(split['training_patients'], "training")
         x_valid, y_valid = loader.prepare_dataset(split['validation_patients'], "validation")
@@ -485,7 +494,9 @@ class TrainingStrategy:
     def _save_fold_artifacts(self, fold_dir: str, epochs_data: List[Dict],
                              predictions: List, targets: List, test_metrics: Dict) -> None:
         """Save all artifacts for a LOSO fold."""
-        EvaluationArtifacts.save_fold_artifacts(fold_dir, epochs_data, predictions, targets, test_metrics)
+        EvaluationArtifacts.save_fold_artifacts(
+            fold_dir, epochs_data, predictions, targets, test_metrics
+        )
 
     def _save_training_results(self, epochs_data: List[Dict],
                               predictions: List, targets: List) -> None:
@@ -520,4 +531,3 @@ class TrainingStrategy:
         print("─"*70)
         EvaluationArtifacts.print_metrics_summary(metrics, metrics['num_samples'])
         print("─"*70)
-

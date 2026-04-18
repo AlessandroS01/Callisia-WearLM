@@ -3,7 +3,8 @@ Block 1 Training - ENTRY POINT + CONFIG MANAGEMENT
 
 RESPONSIBILITIES:
 - Entry points: train_split(), train_loso()
-- Config management: load_training_config(), get_optimizer_config(), get_loss_config(), save_run_config()
+- Config management: [load_training_config(), get_optimizer_config(),
+                        get_loss_config(), save_run_config()]
 
 ALL TRAINING LOGIC is in training_strategy.py
 
@@ -170,7 +171,7 @@ def train(method: str = 'split') -> None:
 
     # ==================== 2. SETUP TRAINING (GET DATALOADERS) ====================
     if method == 'split':
-        print(f"Training method: FIXED SPLIT\n")
+        print("Training method: FIXED SPLIT\n")
         patient_splits = get_split_patients()
         data_loader = Block1TrainingDataLoader()
 
@@ -200,7 +201,7 @@ def train(method: str = 'split') -> None:
         }
 
     elif method == 'loso':
-        print(f"Training method: LOSO CROSS-VALIDATION\n")
+        print("Training method: LOSO CROSS-VALIDATION\n")
         loader = Block1TrainingDataLoader()
         all_subjects = loader.get_all_subjects()
         dataset_config = {'loso_subjects': all_subjects}

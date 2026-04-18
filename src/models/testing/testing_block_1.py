@@ -12,8 +12,7 @@ from torch.utils.data import DataLoader
 
 from src.data.dataset.hr_dataset import HRDataset
 from src.models.block_utils import setup_run_directory
-from src.models.evaluation_utils import (display_sample_predictions,
-                                         plot_test_results, print_metrics_summary)
+from src.models.evaluation_artifacts import EvaluationArtifacts
 from src.models.architecture.hr_cnn import MultimodalHRNet
 from src.models.testing.block_1_data_loader import Block1TestingDataLoader
 
@@ -97,13 +96,13 @@ def run_inference(model, device, test_loader):
 
 def display_results(predictions_arr, targets_arr, test_metrics, run_dir):
     """Display and save test results."""
-    display_sample_predictions(predictions_arr, targets_arr, num_samples=10)
+    EvaluationArtifacts.display_sample_predictions(predictions_arr, targets_arr, num_samples=10)
 
     print("\nGenerating test analysis plot...")
-    plot_test_results(predictions_arr, targets_arr, test_metrics,
-                     output_path=os.path.join(run_dir, "test_analysis.png"))
+    EvaluationArtifacts.plot_test_results(predictions_arr, targets_arr, test_metrics,
+                                         output_path=os.path.join(run_dir, "test_analysis.png"))
 
-    print_metrics_summary(test_metrics, test_metrics['num_samples'], run_dir)
+    EvaluationArtifacts.print_metrics_summary(test_metrics, test_metrics['num_samples'], run_dir)
 
 
 def test():
@@ -149,7 +148,17 @@ def test():
     predictions_arr, targets_arr = run_inference(model, device, test_loader)
 
     # Calculate and save metrics
-    test_metrics = save_test_results(predictions_arr, targets_arr, run_dir)
+    print("\n" + "="*70)
+    print("SAVING TEST RESULTS & ANALYSIS")
+    print("="*70 + "\n")
+
+    test_metrics = EvaluationArtifacts.calculate_metrics(predictions_arr, targets_arr)
+    test_metrics['num_samples'] = len(predictions_arr)
+
+    # Save test results CSV
+    test_results_csv = os.path.join(run_dir, "test_results.csv")
+    EvaluationArtifacts.save_test_results(
+        predictions_arr.tolist(), targets_arr.tolist(), test_results_csv)
 
     if test_metrics:
         display_results(predictions_arr, targets_arr, test_metrics, run_dir)
@@ -157,4 +166,3 @@ def test():
 
 if __name__ == "__main__":
     test()
-

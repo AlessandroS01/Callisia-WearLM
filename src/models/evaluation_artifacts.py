@@ -330,10 +330,14 @@ class EvaluationArtifacts:
             fig.suptitle('Test Set Analysis - HR Estimation Model',
                         fontsize=16, fontweight='bold', y=1.00)
 
-            EvaluationArtifacts._plot_predictions_vs_actual(axes[0, 0], targets, predictions)
-            EvaluationArtifacts._plot_residuals(axes[0, 1], targets, predictions)
-            EvaluationArtifacts._plot_error_distribution(axes[1, 0], targets, predictions, metrics['mae'])
-            EvaluationArtifacts._plot_predictions_over_samples(axes[1, 1], targets, predictions)
+            EvaluationArtifacts._plot_predictions_vs_actual(
+                axes[0, 0], targets, predictions)
+            EvaluationArtifacts._plot_residuals(
+                axes[0, 1], targets, predictions)
+            EvaluationArtifacts._plot_error_distribution(
+                axes[1, 0], targets, predictions, metrics['mae'])
+            EvaluationArtifacts._plot_predictions_over_samples(
+                axes[1, 1], targets, predictions)
 
             # Add metrics text box
             metrics_text = (f"MAE: {metrics['mae']:.4f} bpm\n"
