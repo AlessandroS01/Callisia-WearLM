@@ -669,7 +669,7 @@ This project contributes to addressing the thesis research question:
 
 ## 📧 Project Information
 
-**Institution**: Università Politecnica delle Marche (UNIVPM)  
+**Institution**: Passau University, Università Politecnica delle Marche (UNIVPM)  
 **Industry Partner**: Callisia S.r.l.  
 **Project Type**: Master's Thesis + Industry Collaboration  
 **Application**: Digital Health, Wearable Biomedical Engineering  
@@ -681,14 +681,14 @@ This project contributes to addressing the thesis research question:
 
 ## 📄 License & Citation
 
-This project is part of academic research conducted in collaboration with Callisia S.r.l. and UNIVPM.
+This project is part of academic research conducted in collaboration with Callisia S.r.l., Passau University and UNIVPM.
 
 **If using this code for research, please cite:**
 ```
 @mastersthesis{callisia2026,
   title={Combining Machine Learning and Large Language Models for Healthcare: A Hybrid Approach for Interpreting Wearable Data},
-  author={[Author Name]},
-  school={Università Politecnica delle Marche},
+  author={[Alessandro Seghini, Florian Lemmerich]},
+  school={Passau University, Università Politecnica delle Marche},
   year={2026},
   note={In collaboration with Callisia S.r.l.}
 }
