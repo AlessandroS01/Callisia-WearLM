@@ -11,10 +11,10 @@ import yaml
 from torch.utils.data import DataLoader
 
 from src.data.dataset.hr_dataset import HRDataset
-from src.models.block_utils import setup_run_directory, save_test_results
+from src.models.block_utils import setup_run_directory
 from src.models.evaluation_utils import (display_sample_predictions,
                                          plot_test_results, print_metrics_summary)
-from src.models.hr_cnn import MultimodalHRNet
+from src.models.architecture.hr_cnn import MultimodalHRNet
 from src.models.testing.block_1_data_loader import Block1TestingDataLoader
 
 
