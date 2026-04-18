@@ -1,3 +1,16 @@
-learning_rate: 0.001
+learning_rate: 0.0005
 batch_size: 32
-num_epochs: 15
+num_epochs: 25
+
+loss_function: HuberLoss
+loss_delta: 5.0
+
+optimizer: Adam
+optimizer_weight_decay: 0.0001
+
+scheduler: ReduceLROnPlateau
+scheduler_factor: 0.5
+scheduler_patience: 1
+scheduler_min_lr: 0.0000001
+
+version: 5th_version

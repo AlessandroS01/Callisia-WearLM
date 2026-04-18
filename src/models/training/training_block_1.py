@@ -92,37 +92,47 @@ def load_training_config(config_path: str = "../../../config.yaml") -> dict:
 
 def get_optimizer_config() -> dict:
     """
-    Returns the optimizer configuration.
+    Returns the optimizer configuration from config.yaml.
 
     Single source of truth for optimizer settings.
-    Update here to propagate changes everywhere.
+    Update config.yaml to change optimizer settings everywhere.
 
     Returns:
         dict: Optimizer configuration with name and parameters
     """
+    config = load_training_config()
     return {
-        'name': 'Adam',
+        'name': config.get('optimizer', 'Adam'),
         'params': {
-            'weight_decay': 1e-4
+            'weight_decay': config.get('optimizer_weight_decay', 1e-4)
         }
     }
 
 
 def get_loss_config() -> dict:
     """
-    Returns the loss function configuration.
+    Returns the loss function configuration from config.yaml.
 
     Single source of truth for loss function settings.
-    Update here to propagate changes everywhere.
+    Update config.yaml to change loss function settings everywhere.
 
     Returns:
         dict: Loss function configuration with name and parameters
     """
+    config = load_training_config()
+    loss_name = config.get('loss_function', 'HuberLoss')
+
+    # Build parameters based on loss function type
+    if loss_name == 'HuberLoss':
+        params = {'delta': config.get('loss_delta', 5.0)}
+    elif loss_name == 'SmoothL1Loss':
+        params = {'beta': config.get('loss_beta', 0.5)}
+    else:
+        params = {}
+
     return {
-        'name': 'HuberLoss',
-        'params': {
-            'delta': 5.0
-        }
+        'name': loss_name,
+        'params': params
     }
 
 
@@ -456,7 +466,7 @@ def plot_training_history(
 
 
 
-def _initialize_training_components(learning_rate, run_dir):
+def _initialize_training_components(learning_rate, run_dir, version):
     """Initialize model, optimizer, scheduler, and directories."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"✓ Using device: {device}\n")
@@ -491,11 +501,18 @@ def _initialize_training_components(learning_rate, run_dir):
     print(f"✓ Loss Function: {loss_cfg['name']}"
           f"({', '.join(f'{k}={v}' for k, v in loss_cfg['params'].items())})\n")
 
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
-                                  patience=1, min_lr=1e-7)
+    # Load scheduler configuration from config
+    config = load_training_config()
+    scheduler = ReduceLROnPlateau(
+        optimizer,
+        mode='min',
+        factor=config.get('scheduler_factor', 0.5),
+        patience=config.get('scheduler_patience', 1),
+        min_lr=config.get('scheduler_min_lr', 1e-7)
+    )
     print("✓ Learning Rate Scheduler: ReduceLROnPlateau\n")
 
-    model_run_dir = os.path.join("../../../models/block_1/4rd_version",
+    model_run_dir = os.path.join(f"../../../models/block_1/{version}",
                                 f"{os.path.basename(run_dir)}")
     os.makedirs(model_run_dir, exist_ok=True)
     print(f"✓ Model directory created: {model_run_dir}\n")
@@ -588,7 +605,11 @@ def train():
 
     train_loader, valid_loader, test_loader, learning_rate, num_epochs = setup_training()
 
-    run_dir = setup_run_directory("history/block_1/4th_version")
+    # Load version from config
+    config = load_training_config()
+    version = config.get('version', '5th_version')
+
+    run_dir = setup_run_directory(f"history/block_1/{version}")
 
     # Get configurations from single sources of truth
     optimizer_config = get_optimizer_config()
@@ -599,7 +620,7 @@ def train():
                     get_split_patients(), optimizer_config, loss_config)
 
     device, model, optimizer, loss_function, scheduler, model_run_dir = \
-        _initialize_training_components(learning_rate, run_dir)
+        _initialize_training_components(learning_rate, run_dir, version)
 
     train_losses, val_losses, best_val_loss, epochs_data = \
         _run_training_loop(model, train_loader, valid_loader, optimizer,
