@@ -54,7 +54,9 @@ class Block1TrainingDataLoader(BlockDataLoader):
                 all_subjects.update(patients_dict[split_type])
         return sorted(list(all_subjects))
 
-    def prepare_dataset(self, patients: List[str], split_type: str) -> Tuple[np.ndarray, np.ndarray]:
+    def prepare_dataset(
+            self, patients: List[str], split_type: str
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Prepare dataset by combining data from multiple patients.
 
         Args:
@@ -79,5 +81,3 @@ class Block1TrainingDataLoader(BlockDataLoader):
         print(f"    ✓ {split_type} data shape: {x_combined.shape}")
 
         return x_combined, y_combined
-
-

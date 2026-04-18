@@ -453,7 +453,7 @@ class TrainingStrategy:
                     print(f"  ✓ Loaded fold {fold_idx}")
 
         if not fold_models:
-            print(f"✗ No fold models found")
+            print("✗ No fold models found")
             return
 
         print(f"\n✓ Loaded {len(fold_models)} models\n")
