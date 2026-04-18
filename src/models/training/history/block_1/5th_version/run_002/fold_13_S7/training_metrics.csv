@@ -1,0 +1,2 @@
+epoch,train_loss,val_loss,best_model
+1,142.430493,45.221908,True
