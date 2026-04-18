@@ -36,25 +36,6 @@ def calculate_metrics(predictions: np.ndarray, targets: np.ndarray) -> dict:
     }
 
 
-def display_metrics(metrics: dict, num_samples: int):
-    """
-    Display evaluation metrics in a formatted table.
-
-    Params:
-        metrics: Dictionary with 'mae', 'rmse', 'r2', 'mape' keys
-        num_samples: Total number of samples evaluated
-    """
-    print("="*70)
-    print("TEST RESULTS")
-    print("="*70)
-    print(f"  MAE (Mean Absolute Error):  {metrics['mae']:.4f} bpm")
-    print(f"  RMSE (Root Mean Squared):   {metrics['rmse']:.4f} bpm")
-    print(f"  R² Score:                   {metrics['r2']:.4f}")
-    print(f"  MAPE (Mean Abs % Error):    {metrics['mape']:.2f}%")
-    print(f"  Total Samples:              {num_samples}")
-    print("="*70 + "\n")
-
-
 def print_metrics_summary(metrics: dict, num_samples: int, run_dir: str = None):
     """
     Print a summary of metrics in a compact format.

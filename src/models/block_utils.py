@@ -11,7 +11,7 @@ import numpy as np
 from src.models.evaluation_utils import calculate_metrics
 
 
-def setup_run_directory(base_dir: str = "history/block_1/3rd_version") -> str:
+def setup_run_directory(base_dir: str = "history/block_1/") -> str:
     """
     Creates and returns a run-specific directory with incremental numbering.
 

@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from src.data.dataset.hr_dataset import HRDataset
 from src.models.block_utils import setup_run_directory, save_test_results
-from src.models.evaluation_utils import (display_metrics, display_sample_predictions,
+from src.models.evaluation_utils import (display_sample_predictions,
                                          plot_test_results, print_metrics_summary)
 from src.models.hr_cnn import MultimodalHRNet
 from src.models.testing.block_1_data_loader import Block1TestingDataLoader
@@ -90,7 +90,6 @@ def run_inference(model, device, test_loader):
 
 def display_results(predictions_arr, targets_arr, test_metrics, run_dir):
     """Display and save test results."""
-    display_metrics(test_metrics, test_metrics['num_samples'])
     display_sample_predictions(predictions_arr, targets_arr, num_samples=10)
 
     print("\nGenerating test analysis plot...")
@@ -119,7 +118,7 @@ def test():
     run_dir = setup_run_directory("history/block_1")
 
     # Define model path
-    model_path = "../../../models/block_1/3rd_version/run_001/best_model.pth"
+    model_path = "../../../models/block_1/4rd_version/run_001/best_model.pth"
 
     # Create config file in run directory with model info
     create_config_file(run_dir, model_path)

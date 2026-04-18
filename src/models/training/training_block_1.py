@@ -119,9 +119,9 @@ def get_loss_config() -> dict:
         dict: Loss function configuration with name and parameters
     """
     return {
-        'name': 'SmoothL1Loss',
+        'name': 'HuberLoss',
         'params': {
-            'beta': 0.5
+            'delta': 5.0
         }
     }
 
@@ -427,7 +427,7 @@ def plot_training_history(
 
         # Configure plot
         ax.set_xlabel('Epoch', fontsize=12, fontweight='bold')
-        ax.set_ylabel('Loss (MSE)', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Loss (Huber)', fontsize=12, fontweight='bold')
         ax.set_title('Training History - HR Estimation Model',
                     fontsize=14, fontweight='bold')
         ax.legend(fontsize=11, loc='upper right')
@@ -476,7 +476,9 @@ def _initialize_training_components(learning_rate, run_dir):
         raise ValueError(f"Unsupported optimizer: {optimizer_cfg['name']}")
 
     # Create loss function using configuration
-    if loss_cfg['name'] == 'SmoothL1Loss':
+    if loss_cfg['name'] == 'HuberLoss':
+        loss_function = torch.nn.HuberLoss(**loss_cfg['params'])
+    elif loss_cfg['name'] == 'SmoothL1Loss':
         loss_function = torch.nn.SmoothL1Loss(**loss_cfg['params'])
     elif loss_cfg['name'] == 'MSELoss':
         loss_function = torch.nn.MSELoss()
@@ -493,7 +495,7 @@ def _initialize_training_components(learning_rate, run_dir):
                                   patience=1, min_lr=1e-7)
     print("✓ Learning Rate Scheduler: ReduceLROnPlateau\n")
 
-    model_run_dir = os.path.join("../../../models/block_1/3rd_version",
+    model_run_dir = os.path.join("../../../models/block_1/4rd_version",
                                 f"{os.path.basename(run_dir)}")
     os.makedirs(model_run_dir, exist_ok=True)
     print(f"✓ Model directory created: {model_run_dir}\n")
@@ -557,8 +559,7 @@ def _save_training_artifacts(run_dir, epochs_data, predictions, targets, test_me
     print("\n" + "="*70)
     print("SAVING TEST RESULTS & ANALYSIS")
     print("="*70)
-    test_metrics = save_test_results(predictions, targets,
-                                    os.path.join(run_dir, "test_results.csv"))
+    test_metrics = save_test_results(predictions, targets, run_dir)
 
     if test_metrics:
         plot_test_results(predictions, targets, test_metrics,
@@ -587,7 +588,7 @@ def train():
 
     train_loader, valid_loader, test_loader, learning_rate, num_epochs = setup_training()
 
-    run_dir = setup_run_directory("history/block_1/3rd_version")
+    run_dir = setup_run_directory("history/block_1/4th_version")
 
     # Get configurations from single sources of truth
     optimizer_config = get_optimizer_config()

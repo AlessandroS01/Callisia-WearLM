@@ -9,7 +9,6 @@ import os
 
 import numpy as np
 import pandas as pd
-from pandas import DataFrame
 
 from src.utils.dalia_wesad_config import (
     BVP_SAMPLING_RATE,
@@ -37,7 +36,7 @@ class WESADDaliaProcessor:
         sqi_threshold (float): Threshold to determine if a specific time window is to be taken
     """
 
-    def __init__(self, subject_dir: str):
+    def __init__(self, subject_dir: str, sqi_threshold: float = 0.45):
         """
         Initializes the DaliaProcessor with specific windowing parameters.
         """
@@ -55,7 +54,7 @@ class WESADDaliaProcessor:
 
         self.quality_mask = self._retrieve_data("features/signal_quality_index.csv")
 
-        self.sqi_threshold = 0.45
+        self.sqi_threshold = sqi_threshold
 
     def _align_and_upsample_acc(self, bvp_df: pd.DataFrame, acc_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -161,7 +160,7 @@ class WESADDaliaProcessor:
         return np.array(x_valid), np.array(y_valid)
 
 
-    def _retrieve_data(self, typology:str) -> DataFrame:
+    def _retrieve_data(self, typology:str) -> pd.DataFrame:
         path = os.path.join(self.subject_dir, typology)
         return pd.read_csv(path)
 
