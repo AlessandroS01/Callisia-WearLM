@@ -64,13 +64,15 @@ class BlockDataLoader(ABC):
                   'test_patients' containing lists of patient IDs
         """
 
-    def prepare_dataset(self, patients: list, dataset_name: str) -> tuple[np.ndarray, np.ndarray]:
+    def prepare_dataset(
+            self, patients: list, split_type: str
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Prepares a dataset by combining data from multiple patients.
 
-        Params:
+        Args:
             patients: list of patient IDs
-            dataset_name: name of the dataset (for logging)
+            split_type: name of the dataset ('training', 'validation', 'testing')
 
         Returns:
             tuple: Combined (x, y) arrays for the dataset
@@ -86,7 +88,7 @@ class BlockDataLoader(ABC):
         x_combined = np.concatenate(x_list, axis=0)
         y_combined = np.concatenate(y_list, axis=0)
 
-        print(f"Combined {dataset_name} data with x shape: {x_combined.shape} and "
+        print(f"Combined {split_type} data with x shape: {x_combined.shape} and "
               f"y shape: {y_combined.shape}\n")
 
         return x_combined, y_combined

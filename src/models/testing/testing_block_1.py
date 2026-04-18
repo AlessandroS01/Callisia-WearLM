@@ -11,11 +11,17 @@ import yaml
 from torch.utils.data import DataLoader
 
 from src.data.dataset.hr_dataset import HRDataset
-from src.models.block_utils import setup_run_directory, save_test_results
-from src.models.evaluation_utils import (display_metrics, display_sample_predictions,
-                                         plot_test_results, print_metrics_summary)
-from src.models.hr_cnn import MultimodalHRNet
+from src.models.block_utils import setup_run_directory
+from src.models.evaluation_artifacts import EvaluationArtifacts
+from src.models.architecture.hr_cnn import MultimodalHRNet
 from src.models.testing.block_1_data_loader import Block1TestingDataLoader
+
+
+def load_config(config_path: str = "../../../config.yaml") -> dict:
+    """Load configuration from YAML file."""
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        config = yaml.safe_load(config_file)
+    return config
 
 
 def create_config_file(run_dir: str, model_path: str) -> None:
@@ -90,14 +96,13 @@ def run_inference(model, device, test_loader):
 
 def display_results(predictions_arr, targets_arr, test_metrics, run_dir):
     """Display and save test results."""
-    display_metrics(test_metrics, test_metrics['num_samples'])
-    display_sample_predictions(predictions_arr, targets_arr, num_samples=10)
+    EvaluationArtifacts.display_sample_predictions(predictions_arr, targets_arr, num_samples=10)
 
     print("\nGenerating test analysis plot...")
-    plot_test_results(predictions_arr, targets_arr, test_metrics,
-                     output_path=os.path.join(run_dir, "test_analysis.png"))
+    EvaluationArtifacts.plot_test_results(predictions_arr, targets_arr, test_metrics,
+                                         output_path=os.path.join(run_dir, "test_analysis.png"))
 
-    print_metrics_summary(test_metrics, test_metrics['num_samples'], run_dir)
+    EvaluationArtifacts.print_metrics_summary(test_metrics, test_metrics['num_samples'], run_dir)
 
 
 def test():
@@ -115,11 +120,15 @@ def test():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"✓ Using device: {device}\n")
 
+    # Load version from config
+    config = load_config()
+    version = config.get('version', '5th_version')
+
     # Setup run directory
     run_dir = setup_run_directory("history/block_1")
 
-    # Define model path
-    model_path = "../../../models/block_1/3rd_version/run_001/best_model.pth"
+    # Define model path using version from config
+    model_path = f"../../../models/block_1/{version}/run_001/best_model.pth"
 
     # Create config file in run directory with model info
     create_config_file(run_dir, model_path)
@@ -139,7 +148,17 @@ def test():
     predictions_arr, targets_arr = run_inference(model, device, test_loader)
 
     # Calculate and save metrics
-    test_metrics = save_test_results(predictions_arr, targets_arr, run_dir)
+    print("\n" + "="*70)
+    print("SAVING TEST RESULTS & ANALYSIS")
+    print("="*70 + "\n")
+
+    test_metrics = EvaluationArtifacts.calculate_metrics(predictions_arr, targets_arr)
+    test_metrics['num_samples'] = len(predictions_arr)
+
+    # Save test results CSV
+    test_results_csv = os.path.join(run_dir, "test_results.csv")
+    EvaluationArtifacts.save_test_results(
+        predictions_arr.tolist(), targets_arr.tolist(), test_results_csv)
 
     if test_metrics:
         display_results(predictions_arr, targets_arr, test_metrics, run_dir)
