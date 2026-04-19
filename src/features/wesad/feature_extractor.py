@@ -80,8 +80,16 @@ class WESADFeatureExtractor(BaseFeatureExtractor):
 
         csv_path = os.path.join(self.folder, "features")
 
+        # saves SQI values inside features folder
         save_csv(
             attribute="signal_quality_index",
             output_path=csv_path,
             data=sqi
+        )
+
+        # saves HR values as label file
+        save_csv(
+            attribute="label",
+            output_path=self.folder,
+            data=hr_values
         )

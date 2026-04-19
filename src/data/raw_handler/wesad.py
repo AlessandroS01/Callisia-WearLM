@@ -133,8 +133,6 @@ class WESADDatasetHandler(BaseDatasetHandler):
 
         self._save_metadata(output_dir, metadata)
 
-        self._save_csv_columns(pkl_data, output_dir, ['label'])
-
         if 'signal' in pkl_data:
             for signal_name, sensor_data in pkl_data['signal'].items():
                 if signal_name == 'chest':
