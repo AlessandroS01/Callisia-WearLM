@@ -48,6 +48,10 @@ class WESADDaliaProcessor:
         bvp_data = self._retrieve_data("wrist/wrist_BVP.csv")
         acc_data = self._retrieve_data("wrist/wrist_ACC.csv")
 
+        # Normalize each signal independently (z-score normalization)
+        bvp_data = self._normalize_signal(bvp_data, signal_name="BVP")
+        acc_data = self._normalize_signal(acc_data, signal_name="ACC")
+
         self.raw_x = self._align_and_upsample_acc(bvp_data, acc_data)
 
         self.labels = self._retrieve_data("label.csv")
@@ -173,3 +177,32 @@ class WESADDaliaProcessor:
         """
 
         return self.get_standardized_windows()
+
+    def _normalize_signal(self, signal_df: pd.DataFrame, signal_name: str) -> pd.DataFrame:
+        """
+        Normalizes the input signal DataFrame using z-score normalization.
+
+        Applies per-column normalization: (x - mean) / std for each column independently.
+        For multi-channel signals (e.g., ACC with X, Y, Z axes), each channel is normalized
+        with its own statistics.
+
+        Args:
+            signal_df (pd.DataFrame): The input signal data.
+            signal_name (str): A string indicating the type of signal (e.g., "BVP" or "ACC").
+
+        Returns:
+            pd.DataFrame: The normalized signal data with mean≈0 and std≈1 per channel.
+        """
+        # Calculate per-column mean and std
+        means = signal_df.mean()
+        stds = signal_df.std()
+
+        # Apply z-score normalization: (x - mean) / std (broadcasted per column)
+        normalized_df = (signal_df - means) / stds
+
+        # Add debug information (per-channel for multi-channel signals)
+        print(f"\n{signal_name} normalization:")
+        for col in signal_df.columns:
+            print(f"  {col}: mean={means[col]:.4f}, std={stds[col]:.4f}")
+
+        return pd.DataFrame(normalized_df)
