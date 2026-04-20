@@ -84,8 +84,7 @@ class MultimodalHRNet(nn.Module):
             # FC Layer 1: 64 -> 32
             nn.Linear(in_features=64, out_features=32),
             nn.ReLU(),
-            nn.Dropout(p=0.1),
-
+            nn.Dropout(p=dropout_rate),
             # Output Layer: 32 -> 1 (HR prediction)
             nn.Linear(in_features=32, out_features=1)
         )

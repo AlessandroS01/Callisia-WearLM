@@ -1,4 +1,4 @@
-learning_rate: 0.001
+learning_rate: 0.000631
 batch_size: 32
 num_epochs: 20
 

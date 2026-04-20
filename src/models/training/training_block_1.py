@@ -181,23 +181,17 @@ def train(method: str = 'split') -> None:
         x_valid, y_valid = data_loader.prepare_dataset(
             patient_splits['validation_patients'], "validation"
         )
-        x_test, y_test = data_loader.prepare_dataset(
-            patient_splits['test_patients'], "test"
-        )
 
         train_dataset = HRDataset(x_train, y_train)
         valid_dataset = HRDataset(x_valid, y_valid)
-        test_dataset = HRDataset(x_test, y_test)
 
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
         dataset_config = patient_splits
         loaders_data = {
             'train_loader': train_loader,
-            'valid_loader': valid_loader,
-            'test_loader': test_loader
+            'valid_loader': valid_loader
         }
 
     elif method == 'loso':

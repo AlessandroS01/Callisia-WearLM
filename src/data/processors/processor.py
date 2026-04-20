@@ -200,9 +200,4 @@ class WESADDaliaProcessor:
         # Apply z-score normalization: (x - mean) / std (broadcasted per column)
         normalized_df = (signal_df - means) / stds
 
-        # Add debug information (per-channel for multi-channel signals)
-        print(f"\n{signal_name} normalization:")
-        for col in signal_df.columns:
-            print(f"  {col}: mean={means[col]:.4f}, std={stds[col]:.4f}")
-
         return pd.DataFrame(normalized_df)
