@@ -352,7 +352,7 @@ class TrainingStrategy:
             # Run mini-LOSO with suggested hyperparameters
             fold_val_losses = []
 
-            for fold_idx, test_subject in enumerate(mini_subjects, 1):
+            for _, test_subject in enumerate(mini_subjects, 1):
 
                 # Get fold-specific split
                 remaining = [s for s in mini_subjects if s != test_subject]
