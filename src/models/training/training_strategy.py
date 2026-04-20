@@ -214,7 +214,7 @@ class TrainingStrategy:
         print("="*70 + "\n")
         best_params = self._tune_hyperparameters_with_optuna()
         print("\n" + "="*70)
-        print(f"BEST HYPERPARAMETERS FOUND:")
+        print("BEST HYPERPARAMETERS FOUND:")
         print(f"  Learning Rate: {best_params['learning_rate']:.6f}")
         print(f"  Scheduler Patience: {best_params['scheduler_patience']}")
         print(f"  Batch Size: {best_params['batch_size']}")
@@ -353,6 +353,7 @@ class TrainingStrategy:
             fold_val_losses = []
 
             for fold_idx, test_subject in enumerate(mini_subjects, 1):
+
                 # Get fold-specific split
                 remaining = [s for s in mini_subjects if s != test_subject]
                 num_val = max(1, len(remaining) // 3)
@@ -360,74 +361,69 @@ class TrainingStrategy:
                 val_subj = remaining[-num_val:]
 
                 # Prepare data
-                try:
-                    loader = Block1TrainingDataLoader()
-                    x_train, y_train = loader.prepare_dataset(train_subj, "training")
-                    x_val, y_val = loader.prepare_dataset(val_subj, "validation")
+                loader = Block1TrainingDataLoader()
+                x_train, y_train = loader.prepare_dataset(train_subj, "training")
+                x_val, y_val = loader.prepare_dataset(val_subj, "validation")
 
-                    train_dataset = HRDataset(x_train, y_train)
-                    val_dataset = HRDataset(x_val, y_val)
+                train_dataset = HRDataset(x_train, y_train)
+                val_dataset = HRDataset(x_val, y_val)
 
-                    train_loader = DataLoader(
-                        train_dataset, batch_size=batch_size_trial, shuffle=True
-                    )
-                    val_loader = DataLoader(
-                        val_dataset, batch_size=batch_size_trial, shuffle=False
-                    )
+                train_loader = DataLoader(
+                    train_dataset, batch_size=batch_size_trial, shuffle=True
+                )
+                val_loader = DataLoader(
+                    val_dataset, batch_size=batch_size_trial, shuffle=False
+                )
 
-                    # Initialize model for this trial
-                    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-                    model = MultimodalHRNet().to(device)
+                # Initialize model for this trial
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                model = MultimodalHRNet().to(device)
 
-                    # Create optimizer and scheduler with trial hyperparameters
-                    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate_trial,
-                                               **self.optimizer_config.get('params', {}))
+                # Create optimizer and scheduler with trial hyperparameters
+                optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate_trial,
+                                             **self.optimizer_config.get('params', {}))
 
-                    loss_fn, scheduler = self._initialize_loss_and_scheduler(optimizer)
+                loss_fn, scheduler = self._initialize_loss_and_scheduler(optimizer)
 
-                    # Override scheduler patience with trial value
-                    scheduler.patience = scheduler_patience_trial
+                # Override scheduler patience with trial value
+                scheduler.patience = scheduler_patience_trial
 
-                    # Quick training (fewer epochs for tuning)
-                    tuning_epochs = max(3, self.num_epochs // 4)  # 1/4 of normal epochs
-                    best_val_loss = float('inf')
+                # Quick training (fewer epochs for tuning)
+                tuning_epochs = max(3, self.num_epochs // 4)  # 1/4 of normal epochs
+                best_val_loss = float('inf')
 
-                    for epoch in range(tuning_epochs):
-                        model.train()
-                        for x_batch, y_batch in train_loader:
+                for epoch in range(tuning_epochs):
+                    model.train()
+                    for x_batch, y_batch in train_loader:
+                        x_batch = x_batch.to(device)
+                        y_batch = y_batch.to(device)
+
+                        optimizer.zero_grad()
+                        pred = model(x_batch)
+                        loss = loss_fn(pred.squeeze(), y_batch.squeeze())
+                        loss.backward()
+                        optimizer.step()
+
+                    # Validate
+                    model.eval()
+                    val_loss = 0.0
+                    with torch.no_grad():
+                        for x_batch, y_batch in val_loader:
                             x_batch = x_batch.to(device)
                             y_batch = y_batch.to(device)
-
-                            optimizer.zero_grad()
                             pred = model(x_batch)
-                            loss = loss_fn(pred.squeeze(), y_batch.squeeze())
-                            loss.backward()
-                            optimizer.step()
+                            val_loss += loss_fn(pred.squeeze(), y_batch.squeeze()).item()
 
-                        # Validate
-                        model.eval()
-                        val_loss = 0.0
-                        with torch.no_grad():
-                            for x_batch, y_batch in val_loader:
-                                x_batch = x_batch.to(device)
-                                y_batch = y_batch.to(device)
-                                pred = model(x_batch)
-                                val_loss += loss_fn(pred.squeeze(), y_batch.squeeze()).item()
+                    val_loss /= len(val_loader)
+                    best_val_loss = min(best_val_loss, val_loss)
+                    scheduler.step(val_loss)
 
-                        val_loss /= len(val_loader)
-                        best_val_loss = min(best_val_loss, val_loss)
-                        scheduler.step(val_loss)
+                    # Report intermediate value for pruning
+                    trial.report(best_val_loss, epoch)
+                    if trial.should_prune():
+                        raise optuna.TrialPruned()
 
-                        # Report intermediate value for pruning
-                        trial.report(best_val_loss, epoch)
-                        if trial.should_prune():
-                            raise optuna.TrialPruned()
-
-                    fold_val_losses.append(best_val_loss)
-
-                except Exception as e:
-                    print(f"  Error in fold {fold_idx}: {e}")
-                    return float('inf')
+                fold_val_losses.append(best_val_loss)
 
             # Return average validation loss
             avg_loss = float(np.mean(fold_val_losses))
@@ -456,7 +452,7 @@ class TrainingStrategy:
             'batch_size': best_trial.params['batch_size']
         }
 
-        print(f"\nOptuna tuning complete!")
+        print("\nOptuna tuning complete!")
         print(f"Best trial value (Avg Val Loss): {best_trial.value:.4f}\n")
 
         return best_params
