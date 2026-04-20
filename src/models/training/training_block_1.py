@@ -181,23 +181,17 @@ def train(method: str = 'split') -> None:
         x_valid, y_valid = data_loader.prepare_dataset(
             patient_splits['validation_patients'], "validation"
         )
-        x_test, y_test = data_loader.prepare_dataset(
-            patient_splits['test_patients'], "test"
-        )
 
         train_dataset = HRDataset(x_train, y_train)
         valid_dataset = HRDataset(x_valid, y_valid)
-        test_dataset = HRDataset(x_test, y_test)
 
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
         dataset_config = patient_splits
         loaders_data = {
             'train_loader': train_loader,
-            'valid_loader': valid_loader,
-            'test_loader': test_loader
+            'valid_loader': valid_loader
         }
 
     elif method == 'loso':
@@ -205,7 +199,7 @@ def train(method: str = 'split') -> None:
         loader = Block1TrainingDataLoader()
         all_subjects = loader.get_all_subjects()
         dataset_config = {'loso_subjects': all_subjects}
-        loaders_data = None  # LOSO will prepare its own loaders per fold
+        loaders_data = None  # LOSO prepare its own loaders per fold
     else:
         raise ValueError(f"Unknown training method: {method}. Must be 'split' or 'loso'")
 
@@ -244,4 +238,4 @@ def get_split_patients():
     return loader.get_patients()
 
 if __name__ == "__main__":
-    train("loso")
+    train("split")

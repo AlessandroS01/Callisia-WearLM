@@ -49,8 +49,8 @@ class WESADDaliaProcessor:
         acc_data = self._retrieve_data("wrist/wrist_ACC.csv")
 
         # Normalize each signal independently (z-score normalization)
-        bvp_data = self._normalize_signal(bvp_data, signal_name="BVP")
-        acc_data = self._normalize_signal(acc_data, signal_name="ACC")
+        bvp_data = self._normalize_signal(bvp_data)
+        acc_data = self._normalize_signal(acc_data)
 
         self.raw_x = self._align_and_upsample_acc(bvp_data, acc_data)
 
@@ -178,7 +178,7 @@ class WESADDaliaProcessor:
 
         return self.get_standardized_windows()
 
-    def _normalize_signal(self, signal_df: pd.DataFrame, signal_name: str) -> pd.DataFrame:
+    def _normalize_signal(self, signal_df: pd.DataFrame) -> pd.DataFrame:
         """
         Normalizes the input signal DataFrame using z-score normalization.
 
@@ -199,10 +199,5 @@ class WESADDaliaProcessor:
 
         # Apply z-score normalization: (x - mean) / std (broadcasted per column)
         normalized_df = (signal_df - means) / stds
-
-        # Add debug information (per-channel for multi-channel signals)
-        print(f"\n{signal_name} normalization:")
-        for col in signal_df.columns:
-            print(f"  {col}: mean={means[col]:.4f}, std={stds[col]:.4f}")
 
         return pd.DataFrame(normalized_df)

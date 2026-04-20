@@ -30,15 +30,13 @@ class Block1TrainingDataLoader(BlockDataLoader):
         """Get patient splits for Block 1 training.
 
         Returns:
-            dict: Dictionary with training, validation, and test patient splits
+            dict: Dictionary with training, and validation patient splits
         """
         return {
             'training_patients':
-                ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10"],
+                ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S12", "S13", "S15"],
             'validation_patients':
-                ["S11", "S12"],
-            'test_patients':
-                ["S13", "S14", "S15"]
+                ["S11", "S14"]
         }
 
     def get_all_subjects(self) -> List[str]:
@@ -49,7 +47,7 @@ class Block1TrainingDataLoader(BlockDataLoader):
         """
         patients_dict = self.get_patients()
         all_subjects = set()
-        for split_type in ['training_patients', 'validation_patients', 'test_patients']:
+        for split_type in ['training_patients', 'validation_patients']:
             if split_type in patients_dict:
                 all_subjects.update(patients_dict[split_type])
         return sorted(list(all_subjects))
@@ -61,7 +59,7 @@ class Block1TrainingDataLoader(BlockDataLoader):
 
         Args:
             patients: List of patient IDs to include
-            split_type: Type of split ('training', 'validation', 'testing')
+            split_type: Type of split ('training', 'validation')
 
         Returns:
             Tuple[np.ndarray, np.ndarray]: Combined (x, y) data from all patients

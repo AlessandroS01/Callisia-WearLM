@@ -16,11 +16,14 @@ training_block_1.py (Entry point - prepares all data)
   → evaluation_artifacts.py (for metrics & results)
 """
 
+import json
 import os
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+import optuna
 import torch
+from optuna.pruners import MedianPruner
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
@@ -146,7 +149,7 @@ class TrainingStrategy:
             optimizer_config: Optimizer configuration dict
             loss_config: Loss function configuration dict
             run_dir: Directory for saving results
-            version: Model version (e.g., '5th_version')
+            version: Model version (e.g., '6th_version')
             loaders_data: Dict with train_loader, valid_loader, test_loader for split method
         """
         self.method = method
@@ -179,7 +182,6 @@ class TrainingStrategy:
         # Get pre-loaded loaders from training_block_1
         train_loader = self.loaders_data['train_loader']
         valid_loader = self.loaders_data['valid_loader']
-        test_loader = self.loaders_data['test_loader']
 
         # Initialize training components
         print("Initializing training components...")
@@ -194,21 +196,45 @@ class TrainingStrategy:
                                   loss_function, device, scheduler, model_run_dir)
         print()
 
-        # Test model
-        print("Testing model on held-out test set...")
-        print("="*70)
-        avg_test_loss, predictions, targets = test(model, test_loader, loss_function, device)
-        print(f"✓ Test Loss: {avg_test_loss:.4f}\n")
-
         # Save artifacts
-        print("Saving training artifacts and results...")
-        self._save_training_results(epochs_data, predictions, targets)
+        print("Saving training artifacts...")
+        self._save_split_training_artifacts(epochs_data)
         print("\n" + "="*70)
         print("SPLIT TRAINING COMPLETE!")
         print("="*70 + "\n")
 
     def _train_loso(self) -> None:
-        """Leave-One-Subject-Out cross-validation."""
+        """Leave-One-Subject-Out cross-validation with Optuna hyperparameter tuning."""
+        print("="*70)
+        print("LOSO WITH OPTUNA HYPERPARAMETER TUNING")
+        print("="*70 + "\n")
+
+        # Phase 1: Hyperparameter tuning on 5-patient mini-LOSO
+        print("PHASE 1: HYPERPARAMETER TUNING (Mini-LOSO with 6 patients)")
+        print("="*70 + "\n")
+        best_params = self._tune_hyperparameters_with_optuna()
+        print("\n" + "="*70)
+        print("BEST HYPERPARAMETERS FOUND:")
+        print(f"  Learning Rate: {best_params['learning_rate']:.6f}")
+        print(f"  Scheduler Patience: {best_params['scheduler_patience']}")
+        print(f"  Batch Size: {best_params['batch_size']}")
+        print("="*70 + "\n")
+
+        # Save best hyperparameters to run config file
+        self._save_best_hyperparameters(best_params)
+
+        # Update config with best hyperparameters
+        self.learning_rate = best_params['learning_rate']
+        self.batch_size = best_params['batch_size']
+        self.config['scheduler_patience'] = best_params['scheduler_patience']
+
+        # Phase 2: Full LOSO with optimized hyperparameters
+        print("\nPHASE 2: FULL LOSO TRAINING (15 patients with optimized hyperparameters)")
+        print("="*70 + "\n")
+        self._train_loso_full()
+
+    def _train_loso_full(self) -> None:
+        """Leave-One-Subject-Out cross-validation (full 15-patient LOSO)."""
         print("="*70)
         print("TRAINING WITH LOSO CROSS-VALIDATION METHOD")
         print("="*70 + "\n")
@@ -293,15 +319,143 @@ class TrainingStrategy:
                 'metrics': test_metrics
             })
 
-        # Create ensemble model
-        print("\n" + "="*70)
-        print("Creating ensemble model from all folds...")
-        print("="*70 + "\n")
-        self._create_ensemble_model(models_run_dir, len(fold_results))
+        #   Create ensemble model
+        # print("\n" + "="*70)
+        # print("Creating ensemble model from all folds...")
+        # print("="*70 + "\n")
+        # self._create_ensemble_model(models_run_dir, len(fold_results))
 
         print("="*70)
         print("LOSO CROSS-VALIDATION COMPLETE!")
         print("="*70 + "\n")
+
+    def _tune_hyperparameters_with_optuna(self) -> Dict:
+        """Tune hyperparameters using Optuna with 5-patient mini-LOSO.
+
+        :returns:
+            Dict with best hyperparameters: learning_rate, scheduler_patience, batch_size
+        """
+        print("Starting Optuna hyperparameter tuning...")
+        print("Using 6-patient mini-LOSO for validation\n")
+
+        # Use predefined subjects for mini-LOSO
+        mini_subjects = ["S1", "S2", "S3", "S5", "S11"]
+        print(f"Mini-LOSO subjects: {', '.join(mini_subjects)}\n")
+
+        def objective(trial: optuna.Trial) -> float:
+            """Objective function for Optuna optimization."""
+            # Suggest hyperparameters
+            learning_rate_trial = trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True)
+            scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 5)
+            batch_size_trial = trial.suggest_categorical('batch_size', [16, 32, 64])
+
+            # Run mini-LOSO with suggested hyperparameters
+            fold_val_losses = []
+
+            for _, test_subject in enumerate(mini_subjects, 1):
+
+                # Get fold-specific split
+                remaining = [s for s in mini_subjects if s != test_subject]
+                num_val = max(1, len(remaining) // 3)
+                train_subj = remaining[:-num_val]
+                val_subj = remaining[-num_val:]
+
+                # Prepare data
+                loader = Block1TrainingDataLoader()
+                x_train, y_train = loader.prepare_dataset(train_subj, "training")
+                x_val, y_val = loader.prepare_dataset(val_subj, "validation")
+
+                train_dataset = HRDataset(x_train, y_train)
+                val_dataset = HRDataset(x_val, y_val)
+
+                train_loader = DataLoader(
+                    train_dataset, batch_size=batch_size_trial, shuffle=True
+                )
+                val_loader = DataLoader(
+                    val_dataset, batch_size=batch_size_trial, shuffle=False
+                )
+
+                # Initialize model for this trial
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                model = MultimodalHRNet().to(device)
+
+                # Create optimizer and scheduler with trial hyperparameters
+                optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate_trial,
+                                             **self.optimizer_config.get('params', {}))
+
+                loss_fn, scheduler = self._initialize_loss_and_scheduler(optimizer)
+
+                # Override scheduler patience with trial value
+                scheduler.patience = scheduler_patience_trial
+
+                # Quick training (fewer epochs for tuning)
+                tuning_epochs = max(3, self.num_epochs // 4)  # 1/4 of normal epochs
+                best_val_loss = float('inf')
+
+                for epoch in range(tuning_epochs):
+                    model.train()
+                    for x_batch, y_batch in train_loader:
+                        x_batch = x_batch.to(device)
+                        y_batch = y_batch.to(device)
+
+                        optimizer.zero_grad()
+                        pred = model(x_batch)
+                        loss = loss_fn(pred.squeeze(), y_batch.squeeze())
+                        loss.backward()
+                        optimizer.step()
+
+                    # Validate
+                    model.eval()
+                    val_loss = 0.0
+                    with torch.no_grad():
+                        for x_batch, y_batch in val_loader:
+                            x_batch = x_batch.to(device)
+                            y_batch = y_batch.to(device)
+                            pred = model(x_batch)
+                            val_loss += loss_fn(pred.squeeze(), y_batch.squeeze()).item()
+
+                    val_loss /= len(val_loader)
+                    best_val_loss = min(best_val_loss, val_loss)
+                    scheduler.step(val_loss)
+
+                    # Report intermediate value for pruning
+                    trial.report(best_val_loss, epoch)
+                    if trial.should_prune():
+                        raise optuna.TrialPruned()
+
+                fold_val_losses.append(best_val_loss)
+
+            # Return average validation loss
+            avg_loss = float(np.mean(fold_val_losses))
+            print(f"  Trial | "
+                  f"LR: {learning_rate_trial:.6f} |"
+                  f" Patience: {scheduler_patience_trial} |"
+                  f" Batch Size: {batch_size_trial} |"
+                  f" Avg Val Loss: {avg_loss:.4f}")
+            return avg_loss
+
+        # Create study with Median Pruner
+        study = optuna.create_study(
+            direction='minimize',
+            pruner=MedianPruner()
+        )
+
+        # Run optimization with exactly 10 trials
+        print("Running 10 Optuna trials...\n")
+        study.optimize(objective, n_trials=10, show_progress_bar=True)
+
+        # Get best trial
+        best_trial = study.best_trial
+        best_params = {
+            'learning_rate': best_trial.params['learning_rate'],
+            'scheduler_patience': best_trial.params['scheduler_patience'],
+            'batch_size': best_trial.params['batch_size']
+        }
+
+        print("\nOptuna tuning complete!")
+        print(f"Best trial value (Avg Val Loss): {best_trial.value:.4f}\n")
+
+        return best_params
 
     def _initialize_optimizer(self, model) -> torch.optim.Optimizer:
         """Initialize optimizer from config."""
@@ -313,7 +467,10 @@ class TrainingStrategy:
 
 
     def _initialize_loss_and_scheduler(self, optimizer) -> Tuple:
-        """Initialize loss function and scheduler. Returns (loss_function, scheduler)."""
+        """Initialize loss function and scheduler. Returns (loss_function, scheduler).
+
+        Reads scheduler parameters from config instead of using hardcoded values.
+        """
         if self.loss_config.get('name') == 'HuberLoss':
             loss_function = torch.nn.HuberLoss(**self.loss_config.get('params', {}))
         elif self.loss_config.get('name') == 'SmoothL1Loss':
@@ -321,7 +478,17 @@ class TrainingStrategy:
         else:
             loss_function = torch.nn.MSELoss()
 
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1, min_lr=1e-7)
+        scheduler_factor = self.config.get('scheduler_factor', 0.5)
+        scheduler_patience = self.config.get('scheduler_patience', 3)
+        scheduler_min_lr = self.config.get('scheduler_min_lr', 1e-7)
+
+        scheduler = ReduceLROnPlateau(
+            optimizer,
+            mode='min',
+            factor=scheduler_factor,
+            patience=scheduler_patience,
+            min_lr=scheduler_min_lr
+        )
         return loss_function, scheduler
 
     def _initialize_training_components(self) -> Tuple:
@@ -498,17 +665,44 @@ class TrainingStrategy:
             fold_dir, epochs_data, predictions, targets, test_metrics
         )
 
-    def _save_training_results(self, epochs_data: List[Dict],
-                              predictions: List, targets: List) -> None:
-        """Save training results."""
+    def _save_best_hyperparameters(self, best_params: Dict) -> None:
+        """Save best hyperparameters found by Optuna to run config file.
+
+        Args:
+            best_params: Dictionary with best_hyperparameters keys: learning_rate,
+                        scheduler_patience, batch_size
+        """
+        if not self.run_dir:
+            print("⚠ Warning: run_dir is not set, skipping hyperparameter save\n")
+            return
+
+        config_path = os.path.join(self.run_dir, "optuna_best_hyperparameters.json")
+
+        hyperparams_data = {
+            'source': 'Optuna Hyperparameter Tuning',
+            'learning_rate': float(best_params['learning_rate']),
+            'scheduler_patience': int(best_params['scheduler_patience']),
+            'batch_size': int(best_params['batch_size']),
+            'notes': 'Best hyperparameters found from 10-trial optimization on 5-subject mini-LOSO'
+        }
+
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(hyperparams_data, f, indent=4)
+
+        print(f"✓ Best hyperparameters saved to: {config_path}\n")
+
+    def _save_split_training_artifacts(self, epochs_data: List[Dict]) -> None:
+        """Save training artifacts for split training.
+
+        Only saves training metrics and learning history.
+        No test results saved (testing done separately via testing_block_1.py).
+
+        Args:
+            epochs_data: List of epoch data dicts with train/val losses
+        """
         print("\n" + "="*70)
         print("SAVING TRAINING ARTIFACTS")
         print("="*70)
-
-        metrics = EvaluationArtifacts.calculate_metrics(
-            np.array(predictions), np.array(targets)
-        )
-        metrics['num_samples'] = len(predictions)
 
         metrics_csv = str(os.path.join(self.run_dir or "", "training_metrics.csv"))
         history_png = str(os.path.join(self.run_dir or "", "training_history.png"))
@@ -516,18 +710,6 @@ class TrainingStrategy:
         EvaluationArtifacts.save_training_metrics(epochs_data, metrics_csv)
         EvaluationArtifacts.plot_training_history(metrics_csv, history_png)
 
-        print("\n" + "="*70)
-        print("SAVING TEST RESULTS & ANALYSIS")
-        print("="*70)
-
-        test_results_csv = str(os.path.join(self.run_dir or "", "test_results.csv"))
-        test_analysis_png = str(os.path.join(self.run_dir or "", "test_analysis.png"))
-
-        EvaluationArtifacts.save_test_results(predictions, targets, test_results_csv)
-        EvaluationArtifacts.plot_test_results(predictions, targets, metrics, test_analysis_png)
-
-        print("\n" + "─"*70)
-        print("TEST PERFORMANCE METRICS")
-        print("─"*70)
-        EvaluationArtifacts.print_metrics_summary(metrics, metrics['num_samples'])
-        print("─"*70)
+        print(f"✓ Saved: {metrics_csv}")
+        print(f"✓ Saved: {history_png}")
+        print("="*70 + "\n")

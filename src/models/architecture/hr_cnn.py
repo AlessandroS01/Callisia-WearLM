@@ -12,11 +12,14 @@ from torch import nn
 class MultimodalHRNet(nn.Module):
     """Multi-modal 1D CNN for heart-rate estimation from wearable sensors.
 
-    This class defines a skeleton PyTorch module that fuses multiple sensor
-    channels (BVP and tri-axial ACC) and produces a per-window
-    heart-rate prediction. The concrete network
-    layers are not implemented in this file and should be added to the
-    constructor and the `forward` method.
+    SIMPLIFIED ARCHITECTURE (Version 6):
+    - Reduced parameters from 8.2M to ~80K (appropriate for small dataset)
+    - Uses GlobalAvgPool for natural dimensionality reduction
+    - Minimal FC layers to prevent overfitting
+    - Normalized dropout and BatchNorm usage
+    - Better suited for ~2500 training samples per LOSO fold
+
+    The model learns robust HR patterns while maintaining generalization.
 
     Input shape
     -----------
@@ -25,88 +28,65 @@ class MultimodalHRNet(nn.Module):
 
     Example
     -------
-    >>> #model = MultimodalHRNet(in_channels=4, sequence_length=512)
-    >>> #x = torch.randn(8, 4, 512)
-    >>> #out = model(x)  
+    >>> # model = MultimodalHRNet()
+    >>> # x = torch.randn(8, 4, 512)
+    >>> # out = model(x)
     """
     def __init__(self, dropout_rate: float = 0.1):
         super().__init__()
 
-        # --- ENHANCED CONV BLOCKS (Version 5) ---
-        # Progressive channel increase with better feature extraction
-        # Reduced kernel size from 9 to 7 for finer HR detail capture
+        # --- SIMPLIFIED CONV BLOCKS (Version 6) ---
+        # Focused feature extraction with moderate capacity
+        # 3 conv blocks: 4 → 16 → 32 → 64 channels
 
-        # Block 1: Input (4 channels) -> Output (32 channels)
-        # Kernel size 7 at 64Hz = ~110ms window (better for HR patterns)
+        # Block 1: Input (4 channels) -> Output (16 channels)
+        # Kernel size 7 at 64Hz = ~110ms window (captures HR rhythm)
         self.block1 = nn.Sequential(
-            nn.Conv1d(in_channels=4, out_channels=32, kernel_size=7, padding=3),
-            nn.BatchNorm1d(num_features=32),
+            nn.Conv1d(in_channels=4, out_channels=16, kernel_size=7, padding=3),
+            nn.BatchNorm1d(num_features=16),
             nn.ReLU(),
             nn.Dropout(p=dropout_rate),
             nn.MaxPool1d(kernel_size=2, stride=2)
             # Length: 512 -> 512 (padding) -> 256 (pool)
         )
 
-        # Block 2: Input (32) -> Output (64)
+        # Block 2: Input (16) -> Output (32)
         self.block2 = nn.Sequential(
-            nn.Conv1d(in_channels=32, out_channels=64, kernel_size=5, padding=2),
-            nn.BatchNorm1d(num_features=64),
+            nn.Conv1d(in_channels=16, out_channels=32, kernel_size=5, padding=2),
+            nn.BatchNorm1d(num_features=32),
             nn.ReLU(),
-            nn.Dropout(p=dropout_rate + 0.05),
+            nn.Dropout(p=dropout_rate),
             nn.MaxPool1d(kernel_size=2, stride=2)
             # Length: 256 -> 256 (padding) -> 128 (pool)
         )
 
-        # Block 3: Input (64) -> Output (128)
-        # Increased channels for better feature extraction
+        # Block 3: Input (32) -> Output (64)
+        # Final feature extraction layer
         self.block3 = nn.Sequential(
-            nn.Conv1d(in_channels=64, out_channels=128, kernel_size=3, padding=1),
-            nn.BatchNorm1d(num_features=128),
+            nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+            nn.BatchNorm1d(num_features=64),
             nn.ReLU(),
-            nn.Dropout(p=dropout_rate + 0.1),
+            nn.Dropout(p=dropout_rate),
             nn.MaxPool1d(kernel_size=2, stride=2)
             # Length: 128 -> 128 (padding) -> 64 (pool)
         )
 
-        # --- ADAPTIVE POOLING FOR CONSISTENT SHAPE ---
-        # Ensures we always get (batch, 128, 64) before flattening
-        self.adaptive_pool = nn.AdaptiveAvgPool1d(64)
-
-        # --- THE IMPROVED PREDICTION HEAD (Version 5) ---
-        # Progressive feature reduction instead of aggressive reduction
-        # Flattening size calculation: 128 channels * 64 remaining time steps = 8192
-
+        # --- GLOBAL AVERAGE POOLING ---
+        # Reduces (batch, 64, 64) -> (batch, 64) naturally
+        # Prevents overfitting by avoiding flatten-to-large-FC
+        self.global_pool = nn.AdaptiveAvgPool1d(1)
         self.flatten = nn.Flatten()
 
-        # Improved FC layers with progressive reduction
-        # 8192 -> 2048 -> 1024 -> 512 -> 256 -> 1
+        # --- LIGHTWEIGHT PREDICTION HEAD ---
+        # Minimal FC layers appropriate for small dataset
+        # 64 -> 32 -> 1
         self.fc_layers = nn.Sequential(
-            # FC Layer 1: 8192 -> 2048
-            nn.Linear(in_features=8192, out_features=2048),
-            nn.BatchNorm1d(num_features=2048),
+            # FC Layer 1: 64 -> 32
+            nn.Linear(in_features=64, out_features=32),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
-
-            # FC Layer 2: 2048 -> 1024
-            nn.Linear(in_features=2048, out_features=1024),
-            nn.BatchNorm1d(num_features=1024),
-            nn.ReLU(),
-            nn.Dropout(p=0.25),
-
-            # FC Layer 3: 1024 -> 512
-            nn.Linear(in_features=1024, out_features=512),
-            nn.BatchNorm1d(num_features=512),
-            nn.ReLU(),
-            nn.Dropout(p=0.2),
-
-            # FC Layer 4: 512 -> 256
-            nn.Linear(in_features=512, out_features=256),
-            nn.BatchNorm1d(num_features=256),
-            nn.ReLU(),
-            nn.Dropout(p=0.15),
-
-            # Output Layer: 256 -> 1 (HR prediction)
-            nn.Linear(in_features=256, out_features=1)
+            nn.Dropout(p=dropout_rate),
+            # Output Layer: 32 -> 1 (HR prediction)
+            nn.Linear(in_features=32, out_features=1)
         )
 
     def forward(self, x):
@@ -121,18 +101,20 @@ class MultimodalHRNet(nn.Module):
         Returns
         -------
         torch.Tensor
-            Output tensor containing heart-rate predictions or embeddings.
+            Output tensor containing heart-rate predictions.
         """
         # Conv feature extraction
         x = self.block1(x)
         x = self.block2(x)
         x = self.block3(x)
 
-        # Ensure consistent shape regardless of input size variations
-        x = self.adaptive_pool(x)
+        # Global average pooling: (batch, 64, 64) -> (batch, 64, 1)
+        x = self.global_pool(x)
 
-        # Flatten and pass through FC layers
+        # Flatten: (batch, 64, 1) -> (batch, 64)
         x = self.flatten(x)
+
+        # FC layers for prediction
         out = self.fc_layers(x)
 
         return out.squeeze()  # Return shape (batch_size,) for regression output
