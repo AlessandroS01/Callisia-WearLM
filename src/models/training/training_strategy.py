@@ -146,7 +146,7 @@ class TrainingStrategy:
             optimizer_config: Optimizer configuration dict
             loss_config: Loss function configuration dict
             run_dir: Directory for saving results
-            version: Model version (e.g., '5th_version')
+            version: Model version (e.g., '6th_version')
             loaders_data: Dict with train_loader, valid_loader, test_loader for split method
         """
         self.method = method
@@ -313,7 +313,10 @@ class TrainingStrategy:
 
 
     def _initialize_loss_and_scheduler(self, optimizer) -> Tuple:
-        """Initialize loss function and scheduler. Returns (loss_function, scheduler)."""
+        """Initialize loss function and scheduler. Returns (loss_function, scheduler).
+
+        Reads scheduler parameters from config instead of using hardcoded values.
+        """
         if self.loss_config.get('name') == 'HuberLoss':
             loss_function = torch.nn.HuberLoss(**self.loss_config.get('params', {}))
         elif self.loss_config.get('name') == 'SmoothL1Loss':
@@ -321,7 +324,17 @@ class TrainingStrategy:
         else:
             loss_function = torch.nn.MSELoss()
 
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1, min_lr=1e-7)
+        scheduler_factor = self.config.get('scheduler_factor', 0.5)
+        scheduler_patience = self.config.get('scheduler_patience', 3)
+        scheduler_min_lr = self.config.get('scheduler_min_lr', 1e-7)
+
+        scheduler = ReduceLROnPlateau(
+            optimizer,
+            mode='min',
+            factor=scheduler_factor,
+            patience=scheduler_patience,
+            min_lr=scheduler_min_lr
+        )
         return loss_function, scheduler
 
     def _initialize_training_components(self) -> Tuple:

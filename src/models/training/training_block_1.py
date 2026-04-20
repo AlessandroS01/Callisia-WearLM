@@ -205,7 +205,7 @@ def train(method: str = 'split') -> None:
         loader = Block1TrainingDataLoader()
         all_subjects = loader.get_all_subjects()
         dataset_config = {'loso_subjects': all_subjects}
-        loaders_data = None  # LOSO will prepare its own loaders per fold
+        loaders_data = None  # LOSO prepare its own loaders per fold
     else:
         raise ValueError(f"Unknown training method: {method}. Must be 'split' or 'loso'")
 
@@ -244,4 +244,4 @@ def get_split_patients():
     return loader.get_patients()
 
 if __name__ == "__main__":
-    train("loso")
+    train("split")
