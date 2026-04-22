@@ -218,23 +218,34 @@ class TrainingStrategy:
         print(f"  Learning Rate: {best_params['learning_rate']:.6f}")
         print(f"  Scheduler Patience: {best_params['scheduler_patience']}")
         print(f"  Batch Size: {best_params['batch_size']}")
+        print(f"  Num Epochs: {best_params['num_epochs']}")
+        print(f"  Loss Beta (SmoothL1Loss delta): {best_params['loss_beta']:.4f}")
+        print(f"  Optimizer Weight Decay: {best_params['optimizer_weight_decay']:.6f}")
         print("="*70 + "\n")
-
-        # Save best hyperparameters to run config file
-        self._save_best_hyperparameters(best_params)
 
         # Update config with best hyperparameters
         self.learning_rate = best_params['learning_rate']
         self.batch_size = best_params['batch_size']
+        self.num_epochs = best_params['num_epochs']
         self.config['scheduler_patience'] = best_params['scheduler_patience']
+        self.config['loss_beta'] = best_params['loss_beta']
+        self.config['optimizer_weight_decay'] = best_params['optimizer_weight_decay']
 
         # Phase 2: Full LOSO with optimized hyperparameters
         print("\nPHASE 2: FULL LOSO TRAINING (15 patients with optimized hyperparameters)")
         print("="*70 + "\n")
-        self._train_loso_full()
+        fold_results = self._train_loso_full()
 
-    def _train_loso_full(self) -> None:
-        """Leave-One-Subject-Out cross-validation (full 15-patient LOSO)."""
+        # Save best hyperparameters with baseline metrics after full training
+        avg_mae = np.mean([fold['metrics'].get('mae', 0) for fold in fold_results])
+        self._save_best_hyperparameters(best_params, float(avg_mae))
+
+    def _train_loso_full(self) -> List[Dict]:
+        """Leave-One-Subject-Out cross-validation (full 15-patient LOSO).
+
+        Returns:
+            List of fold results containing subject, test_loss, and metrics for each fold
+        """
         print("="*70)
         print("TRAINING WITH LOSO CROSS-VALIDATION METHOD")
         print("="*70 + "\n")
@@ -329,6 +340,8 @@ class TrainingStrategy:
         print("LOSO CROSS-VALIDATION COMPLETE!")
         print("="*70 + "\n")
 
+        return fold_results
+
     def _tune_hyperparameters_with_optuna(self) -> Dict:
         """Tune hyperparameters using Optuna with 5-patient mini-LOSO.
 
@@ -339,7 +352,7 @@ class TrainingStrategy:
         print("Using 6-patient mini-LOSO for validation\n")
 
         # Use predefined subjects for mini-LOSO
-        mini_subjects = ["S1", "S2", "S3", "S5", "S11"]
+        mini_subjects = ["S1", "S2", "S3", "S5", "S11", "S7"]
         print(f"Mini-LOSO subjects: {', '.join(mini_subjects)}\n")
 
         def objective(trial: optuna.Trial) -> float:
@@ -348,6 +361,11 @@ class TrainingStrategy:
             learning_rate_trial = trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True)
             scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 5)
             batch_size_trial = trial.suggest_categorical('batch_size', [16, 32, 64])
+            num_epochs_trial = trial.suggest_int('num_epochs', 20, 50)
+            loss_beta_trial = trial.suggest_float('loss_beta', 0.1, 10.0)
+            optimizer_weight_decay_trial = trial.suggest_float(
+                'optimizer_weight_decay', 1e-5, 1e-3, log=True
+            )
 
             # Run mini-LOSO with suggested hyperparameters
             fold_val_losses = []
@@ -381,15 +399,21 @@ class TrainingStrategy:
 
                 # Create optimizer and scheduler with trial hyperparameters
                 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate_trial,
-                                             **self.optimizer_config.get('params', {}))
+                                             weight_decay=optimizer_weight_decay_trial)
 
-                loss_fn, scheduler = self._initialize_loss_and_scheduler(optimizer)
+                # Create loss function with trial beta parameter
+                if self.loss_config.get('name') == 'SmoothL1Loss':
+                    loss_fn = torch.nn.SmoothL1Loss(beta=loss_beta_trial)
+                elif self.loss_config.get('name') == 'HuberLoss':
+                    loss_fn = torch.nn.HuberLoss(delta=loss_beta_trial)
+                else:
+                    loss_fn = torch.nn.MSELoss()
 
-                # Override scheduler patience with trial value
-                scheduler.patience = scheduler_patience_trial
+                scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
+                                            patience=scheduler_patience_trial, min_lr=1e-7)
 
-                # Quick training (fewer epochs for tuning)
-                tuning_epochs = max(3, self.num_epochs // 4)  # 1/4 of normal epochs
+                # Quick training (fewer epochs for tuning - use trial epochs or 1/4 of tuning)
+                tuning_epochs = max(3, num_epochs_trial // 4)  # 1/4 of trial epochs
                 best_val_loss = float('inf')
 
                 for epoch in range(tuning_epochs):
@@ -431,6 +455,9 @@ class TrainingStrategy:
                   f"LR: {learning_rate_trial:.6f} |"
                   f" Patience: {scheduler_patience_trial} |"
                   f" Batch Size: {batch_size_trial} |"
+                  f" Epochs: {num_epochs_trial} |"
+                  f" Loss Beta: {loss_beta_trial:.4f} |"
+                  f" Weight Decay: {optimizer_weight_decay_trial:.6f} |"
                   f" Avg Val Loss: {avg_loss:.4f}")
             return avg_loss
 
@@ -440,16 +467,19 @@ class TrainingStrategy:
             pruner=MedianPruner()
         )
 
-        # Run optimization with exactly 10 trials
-        print("Running 10 Optuna trials...\n")
-        study.optimize(objective, n_trials=10, show_progress_bar=True)
+        # Run optimization with exactly 100 trials
+        print("Running 100 Optuna trials...\n")
+        study.optimize(objective, n_trials=100, show_progress_bar=True)
 
         # Get best trial
         best_trial = study.best_trial
         best_params = {
             'learning_rate': best_trial.params['learning_rate'],
             'scheduler_patience': best_trial.params['scheduler_patience'],
-            'batch_size': best_trial.params['batch_size']
+            'batch_size': best_trial.params['batch_size'],
+            'num_epochs': best_trial.params['num_epochs'],
+            'loss_beta': best_trial.params['loss_beta'],
+            'optimizer_weight_decay': best_trial.params['optimizer_weight_decay']
         }
 
         print("\nOptuna tuning complete!")
@@ -460,7 +490,9 @@ class TrainingStrategy:
     def _initialize_optimizer(self, model) -> torch.optim.Optimizer:
         """Initialize optimizer from config."""
         if self.optimizer_config.get('name') == 'Adam':
+            weight_decay = self.config.get('optimizer_weight_decay', 0.0001)
             return torch.optim.Adam(model.parameters(), lr=self.learning_rate,
+                                   weight_decay=weight_decay,
                                    **self.optimizer_config.get('params', {}))
 
         raise ValueError(f"Unsupported optimizer: {self.optimizer_config.get('name')}")
@@ -471,10 +503,12 @@ class TrainingStrategy:
 
         Reads scheduler parameters from config instead of using hardcoded values.
         """
+        loss_beta = self.config.get('loss_beta', 1.0)
+
         if self.loss_config.get('name') == 'HuberLoss':
-            loss_function = torch.nn.HuberLoss(**self.loss_config.get('params', {}))
+            loss_function = torch.nn.HuberLoss(delta=loss_beta)
         elif self.loss_config.get('name') == 'SmoothL1Loss':
-            loss_function = torch.nn.SmoothL1Loss(**self.loss_config.get('params', {}))
+            loss_function = torch.nn.SmoothL1Loss(beta=loss_beta)
         else:
             loss_function = torch.nn.MSELoss()
 
@@ -665,12 +699,13 @@ class TrainingStrategy:
             fold_dir, epochs_data, predictions, targets, test_metrics
         )
 
-    def _save_best_hyperparameters(self, best_params: Dict) -> None:
-        """Save best hyperparameters found by Optuna to run config file.
+    def _save_best_hyperparameters(self, best_params: Dict, avg_mae: float) -> None:
+        """Save best hyperparameters found by Optuna to run config file with baseline metrics.
 
         Args:
-            best_params: Dictionary with best_hyperparameters keys: learning_rate,
-                        scheduler_patience, batch_size
+            best_params: Dictionary with best_hyperparameters: learning_rate, scheduler_patience,
+                        batch_size, num_epochs, loss_beta, optimizer_weight_decay
+            avg_mae: Average MAE from full LOSO training (baseline metric)
         """
         if not self.run_dir:
             print("⚠ Warning: run_dir is not set, skipping hyperparameter save\n")
@@ -680,16 +715,25 @@ class TrainingStrategy:
 
         hyperparams_data = {
             'source': 'Optuna Hyperparameter Tuning',
-            'learning_rate': float(best_params['learning_rate']),
-            'scheduler_patience': int(best_params['scheduler_patience']),
-            'batch_size': int(best_params['batch_size']),
-            'notes': 'Best hyperparameters found from 10-trial optimization on 5-subject mini-LOSO'
+            'hyperparameters': {
+                'learning_rate': float(best_params['learning_rate']),
+                'scheduler_patience': int(best_params['scheduler_patience']),
+                'batch_size': int(best_params['batch_size']),
+                'num_epochs': int(best_params['num_epochs']),
+                'loss_beta': float(best_params['loss_beta']),
+                'optimizer_weight_decay': float(best_params['optimizer_weight_decay'])
+            },
+            'baseline_metric': {
+                'average_mae_bpm': float(avg_mae) if avg_mae is not None else None,
+                'description': 'Average MAE (beats per minute) from full 15-subject LOSO training'
+            },
+            'notes': 'Best hyperparameters 10-trial Optuna optimization on 6-subject mini-LOSO'
         }
 
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(hyperparams_data, f, indent=4)
 
-        print(f"✓ Best hyperparameters saved to: {config_path}\n")
+        print(f"✓ Best hyperparameters with baseline metrics saved to: {config_path}\n")
 
     def _save_split_training_artifacts(self, epochs_data: List[Dict]) -> None:
         """Save training artifacts for split training.
