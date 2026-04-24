@@ -14,7 +14,7 @@ import os
 
 def setup_run_directory(base_path: str) -> str:
     """
-    Create a numbered run directory (run_001, run_002, etc.).
+    Create a numbered run directory (run_001, dalia, etc.).
 
     Args:
         base_path: Base path where run directories will be created

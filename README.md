@@ -512,7 +512,7 @@ from src.models.architecture.hr_cnn import MultimodalHRNet
 # Load trained model
 model = MultimodalHRNet()
 model.load_state_dict(torch.load(
-  "models/block_1/5th_version/run_002/averaged_model/best_model.pth"
+  "models/block_1/5th_version/dalia/averaged_model/best_model.pth"
 ))
 model.eval()
 

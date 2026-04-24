@@ -213,6 +213,7 @@ class TrainingStrategy:
         print("PHASE 1: HYPERPARAMETER TUNING (Mini-LOSO with 6 patients)")
         print("="*70 + "\n")
         best_params = self._tune_hyperparameters_with_optuna()
+
         print("\n" + "="*70)
         print("BEST HYPERPARAMETERS FOUND:")
         print(f"  Learning Rate: {best_params['learning_rate']:.6f}")
@@ -492,8 +493,7 @@ class TrainingStrategy:
         if self.optimizer_config.get('name') == 'Adam':
             weight_decay = self.config.get('optimizer_weight_decay', 0.0001)
             return torch.optim.Adam(model.parameters(), lr=self.learning_rate,
-                                   weight_decay=weight_decay,
-                                   **self.optimizer_config.get('params', {}))
+                                   weight_decay=weight_decay)
 
         raise ValueError(f"Unsupported optimizer: {self.optimizer_config.get('name')}")
 
