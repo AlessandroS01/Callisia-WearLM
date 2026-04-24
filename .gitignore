@@ -7,3 +7,5 @@
 /.idea/inspectionProfiles/profiles_settings.xml
 /data/
 /models/block_1/
+
+/models/baselines/block_1/trial_1/best_model.pth

@@ -13,7 +13,7 @@ class MultimodalHRNet(nn.Module):
     """Multi-modal 1D CNN for heart-rate estimation from wearable sensors.
 
     SIMPLIFIED ARCHITECTURE (Version 6):
-    - Reduced parameters from 8.2M to ~80K (appropriate for small dataset)
+    - Reduced parameters from 8.2M to ~11.6K
     - Uses GlobalAvgPool for natural dimensionality reduction
     - Minimal FC layers to prevent overfitting
     - Normalized dropout and BatchNorm usage
@@ -118,3 +118,8 @@ class MultimodalHRNet(nn.Module):
         out = self.fc_layers(x)
 
         return out.squeeze()  # Return shape (batch_size,) for regression output
+
+if __name__ == '__main__':
+    model = MultimodalHRNet()
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f'Total number of parameters: {total_params}')
