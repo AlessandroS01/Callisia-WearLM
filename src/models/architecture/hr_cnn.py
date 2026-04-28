@@ -5,8 +5,6 @@ estimation from bvp and acc wearable sensors.
 """
 
 from torch import nn
-import torch
-
 
 class ChannelAttention(nn.Module):
     """Lightweight channel attention module (Squeeze-and-Excitation).
