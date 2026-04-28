@@ -1,0 +1,6 @@
+{
+  "n_params": 11601,
+  "n_trainable_params": 11601,
+  "n_non_trainable_params": 0,
+  "model_path": "../../../models/block_1/7th_version/run_002/best_model.pth"
+}

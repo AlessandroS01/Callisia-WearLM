@@ -1,0 +1,16 @@
+{
+    "source": "Optuna Hyperparameter Tuning",
+    "hyperparameters": {
+        "learning_rate": 0.0009976506417636814,
+        "scheduler_patience": 4,
+        "batch_size": 16,
+        "num_epochs": 11,
+        "loss_beta": 9.589295427855856,
+        "optimizer_weight_decay": 2.479405495248223e-05
+    },
+    "baseline_metric": {
+        "average_mae_bpm": 7.597642058645633,
+        "description": "Average MAE (beats per minute) from full 15-subject LOSO training"
+    },
+    "notes": "Best hyperparameters 10-trial Optuna optimization on 6-subject mini-LOSO"
+}

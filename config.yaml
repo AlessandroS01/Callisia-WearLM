@@ -1,16 +1,16 @@
-learning_rate: 0.000686
+learning_rate: 0.0009976506417636814
 batch_size: 16
-num_epochs: 29
+num_epochs: 20
 
 loss_function: SmoothL1Loss
-loss_beta: 9.9461
+loss_beta: 9.589295427855856
 
 optimizer: Adam
-optimizer_weight_decay: 0.000425
+optimizer_weight_decay: 2.479405495248223e-05
 
 scheduler: ReduceLROnPlateau
 scheduler_factor: 0.5
-scheduler_patience: 3
+scheduler_patience: 4
 scheduler_min_lr: 0.0000001
 
-version: 6th_version
+version: 7th_version
