@@ -212,7 +212,16 @@ class TrainingStrategy:
         # Phase 1: Hyperparameter tuning on 5-patient mini-LOSO
         print("PHASE 1: HYPERPARAMETER TUNING (Mini-LOSO with 6 patients)")
         print("="*70 + "\n")
-        best_params = self._tune_hyperparameters_with_optuna()
+        #best_params = self._tune_hyperparameters_with_optuna()
+
+        best_params = {
+            'learning_rate': 0.0009976506417636814,
+            'scheduler_patience': 4,
+            'batch_size': 16,
+            'num_epochs': 11,
+            'loss_beta': 9.589295427855856,
+            'optimizer_weight_decay': 2.479405495248223e-05
+        }
 
         print("\n" + "="*70)
         print("BEST HYPERPARAMETERS FOUND:")
@@ -359,10 +368,10 @@ class TrainingStrategy:
         def objective(trial: optuna.Trial) -> float:
             """Objective function for Optuna optimization."""
             # Suggest hyperparameters
-            learning_rate_trial = trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True)
-            scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 5)
+            learning_rate_trial = trial.suggest_float('learning_rate', 1e-7, 1e-3, log=True)
+            scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 10)
             batch_size_trial = trial.suggest_categorical('batch_size', [16, 32, 64])
-            num_epochs_trial = trial.suggest_int('num_epochs', 20, 50)
+            num_epochs_trial = trial.suggest_int('num_epochs', 5, 20)
             loss_beta_trial = trial.suggest_float('loss_beta', 0.1, 10.0)
             optimizer_weight_decay_trial = trial.suggest_float(
                 'optimizer_weight_decay', 1e-5, 1e-3, log=True
@@ -469,8 +478,8 @@ class TrainingStrategy:
         )
 
         # Run optimization with exactly 100 trials
-        print("Running 100 Optuna trials...\n")
-        study.optimize(objective, n_trials=100, show_progress_bar=True)
+        print("Running 200 Optuna trials...\n")
+        study.optimize(objective, n_trials=200, show_progress_bar=True)
 
         # Get best trial
         best_trial = study.best_trial
