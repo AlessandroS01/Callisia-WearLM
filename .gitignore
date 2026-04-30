@@ -6,8 +6,7 @@
 /.idea/vcs.xml
 /.idea/inspectionProfiles/profiles_settings.xml
 /models/block_1/
-
-/data/processed/dalia
+/data/
 
 /models/baselines/block_1/trial_1/best_model.pth
 /models/baselines/block_1/trial_2/best_model.pth
