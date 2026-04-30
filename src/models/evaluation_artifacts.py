@@ -292,7 +292,8 @@ class EvaluationArtifacts:
         ax.hist(errors, bins=30, color='#F18F01', edgecolor='black', alpha=0.7)
         ax.axvline(mae, color='red', linestyle='--', linewidth=2, label=f"Mean: {mae:.2f}")
         if std_error is not None:
-            ax.axvline(mae + std_error, color='orange', linestyle=':', linewidth=2, label=f"±Std: {std_error:.2f}")
+            ax.axvline(mae + std_error, color='orange', linestyle=':',
+                       linewidth=2, label=f"±Std: {std_error:.2f}")
             ax.axvline(mae - std_error, color='orange', linestyle=':', linewidth=2)
         ax.set_xlabel('Absolute Error (bpm)', fontsize=11, fontweight='bold')
         ax.set_ylabel('Frequency', fontsize=11, fontweight='bold')
@@ -349,7 +350,8 @@ class EvaluationArtifacts:
                 axes[1, 1], targets, predictions)
 
             # Add metrics text box
-            std_error_text = f"\nStd Dev Error: {metrics.get('std_error', 0):.4f} bpm" if 'std_error' in metrics else ""
+            std_error_text = (f"\nStd Dev Error: {metrics.get('std_error', 0):.4f}"
+                              f" bpm") if 'std_error' in metrics else ""
             metrics_text = (f"MAE: {metrics['mae']:.4f} bpm{std_error_text}\n"
                            f"RMSE: {metrics['rmse']:.4f} bpm\n"
                            f"R²: {metrics['r2']:.4f}\n"
