@@ -212,16 +212,7 @@ class TrainingStrategy:
         # Phase 1: Hyperparameter tuning on 5-patient mini-LOSO
         print("PHASE 1: HYPERPARAMETER TUNING (Mini-LOSO with 6 patients)")
         print("="*70 + "\n")
-        #best_params = self._tune_hyperparameters_with_optuna()
-
-        best_params = {
-            'learning_rate': 0.0009976506417636814,
-            'scheduler_patience': 4,
-            'batch_size': 16,
-            'num_epochs': 11,
-            'loss_beta': 9.589295427855856,
-            'optimizer_weight_decay': 2.479405495248223e-05
-        }
+        best_params = self._tune_hyperparameters_with_optuna()
 
         print("\n" + "="*70)
         print("BEST HYPERPARAMETERS FOUND:")
@@ -356,7 +347,7 @@ class TrainingStrategy:
         """Tune hyperparameters using Optuna with 5-patient mini-LOSO.
 
         :returns:
-            Dict with best hyperparameters: learning_rate, scheduler_patience, batch_size
+            Dict with the best hyperparameters: learning_rate, scheduler_patience, batch_size
         """
         print("Starting Optuna hyperparameter tuning...")
         print("Using 6-patient mini-LOSO for validation\n")

@@ -34,7 +34,7 @@ class EvaluationArtifacts:
             targets: Array of ground truth labels
 
         Returns:
-            dict: Dictionary containing MAE, RMSE, R², MAPE metrics
+            dict: Dictionary containing MAE, RMSE, R², MAPE, and std_error metrics
 
         Example:
             metrics = EvaluationArtifacts.calculate_metrics(pred_array, target_array)
@@ -49,11 +49,16 @@ class EvaluationArtifacts:
             mape = np.mean(np.abs((targets - predictions) / targets)) * 100
             mape = np.nan_to_num(mape, nan=0.0, posinf=0.0, neginf=0.0)
 
+        # Calculate standard deviation of absolute errors
+        absolute_errors = np.abs(predictions - targets)
+        std_error = np.std(absolute_errors)
+
         return {
             'mae': mae,
             'rmse': rmse,
             'r2': r2,
-            'mape': mape
+            'mape': mape,
+            'std_error': std_error
         }
 
     # ==================== METRICS DISPLAY ====================
@@ -64,7 +69,7 @@ class EvaluationArtifacts:
         Print a summary of metrics in a compact format.
 
         Args:
-            metrics: Dictionary with 'mae', 'rmse', 'r2', 'mape' keys
+            metrics: Dictionary with 'mae', 'rmse', 'r2', 'mape', 'std_error' keys
             num_samples: Total number of samples evaluated
             run_dir: Optional path to the results directory
         """
@@ -72,6 +77,7 @@ class EvaluationArtifacts:
         print("TEST SUMMARY")
         print("="*70)
         print(f"  MAE: {metrics['mae']:.4f} bpm")
+        print(f"  Std Dev Error: {metrics['std_error']:.4f} bpm")
         print(f"  RMSE: {metrics['rmse']:.4f} bpm")
         print(f"  R²: {metrics['r2']:.4f}")
         print(f"  MAPE: {metrics['mape']:.2f}%")
@@ -225,7 +231,7 @@ class EvaluationArtifacts:
 
             # Configure plot
             ax.set_xlabel('Epoch', fontsize=12, fontweight='bold')
-            ax.set_ylabel('Loss (Huber)', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Loss', fontsize=12, fontweight='bold')
             ax.set_title('Training History - HR Estimation Model',
                         fontsize=14, fontweight='bold')
             ax.legend(fontsize=11, loc='upper right')
@@ -280,11 +286,14 @@ class EvaluationArtifacts:
         ax.grid(True, alpha=0.3)
 
     @staticmethod
-    def _plot_error_distribution(ax, targets, predictions, mae) -> None:
+    def _plot_error_distribution(ax, targets, predictions, mae, std_error=None) -> None:
         """Plot error distribution histogram."""
         errors = np.abs(predictions - targets)
         ax.hist(errors, bins=30, color='#F18F01', edgecolor='black', alpha=0.7)
         ax.axvline(mae, color='red', linestyle='--', linewidth=2, label=f"Mean: {mae:.2f}")
+        if std_error is not None:
+            ax.axvline(mae + std_error, color='orange', linestyle=':', linewidth=2, label=f"±Std: {std_error:.2f}")
+            ax.axvline(mae - std_error, color='orange', linestyle=':', linewidth=2)
         ax.set_xlabel('Absolute Error (bpm)', fontsize=11, fontweight='bold')
         ax.set_ylabel('Frequency', fontsize=11, fontweight='bold')
         ax.set_title('Distribution of Absolute Errors', fontsize=12, fontweight='bold')
@@ -335,12 +344,13 @@ class EvaluationArtifacts:
             EvaluationArtifacts._plot_residuals(
                 axes[0, 1], targets, predictions)
             EvaluationArtifacts._plot_error_distribution(
-                axes[1, 0], targets, predictions, metrics['mae'])
+                axes[1, 0], targets, predictions, metrics['mae'], metrics.get('std_error'))
             EvaluationArtifacts._plot_predictions_over_samples(
                 axes[1, 1], targets, predictions)
 
             # Add metrics text box
-            metrics_text = (f"MAE: {metrics['mae']:.4f} bpm\n"
+            std_error_text = f"\nStd Dev Error: {metrics.get('std_error', 0):.4f} bpm" if 'std_error' in metrics else ""
+            metrics_text = (f"MAE: {metrics['mae']:.4f} bpm{std_error_text}\n"
                            f"RMSE: {metrics['rmse']:.4f} bpm\n"
                            f"R²: {metrics['r2']:.4f}\n"
                            f"MAPE: {metrics['mape']:.2f}%\n"
