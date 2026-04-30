@@ -1,0 +1,11 @@
+{
+    "subject": "S10",
+    "questionnaire": {
+        "WEIGHT": 56.0,
+        "Gender": " f",
+        "AGE": 55,
+        "HEIGHT": 164.0,
+        "SKIN": 4,
+        "SPORT": 5
+    }
+}

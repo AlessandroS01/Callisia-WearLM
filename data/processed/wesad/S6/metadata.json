@@ -1,0 +1,9 @@
+{
+    "subject": "S6",
+    "questionnaire": {
+        "age": 27,
+        "height": 170,
+        "weight": 66,
+        "gender": "male"
+    }
+}
