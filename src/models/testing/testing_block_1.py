@@ -128,7 +128,7 @@ def test():
     run_dir = setup_run_directory("history/block_1")
 
     # Define model path using version from config
-    model_path = f"../../../models/block_1/{version}/run_002/best_model.pth"
+    model_path = f"../../../models/block_1/{version}/run_004/best_model.pth"
 
     # Create config file in run directory with model info
     create_config_file(run_dir, model_path)

@@ -130,6 +130,16 @@ class MultimodalHRNet(nn.Module):
             128, 128,
             kernel_size=3, use_residual=True, dropout_rate=dropout_rate)
 
+        # --- RECURRENT MEMORY BLOCK ---
+        # Feed these 64 steps into a Bidirectional LSTM to smooth out high peaks.
+        # input_size=128 (from block4 channels), hidden_size=64.
+        # Because it's bidirectional (looks forward and backward in time),
+        # the output will be 64 * 2 = 128 features.
+        self.lstm = nn.LSTM(
+            input_size=128, hidden_size=64,
+            num_layers=1, batch_first=True, bidirectional=True
+        )
+
         # --- GLOBAL AVERAGE POOLING ---
         # Naturally reduces (batch, 128, 64) -> (batch, 128, 1) -> (batch, 128)
         self.global_pool = nn.AdaptiveAvgPool1d(1)
@@ -162,6 +172,19 @@ class MultimodalHRNet(nn.Module):
         x = self.block2(x)
         x = self.block3(x)
         x = self.block4(x)
+
+        # LSTM
+        # Permute from (Batch, Channels, SeqLen) to (Batch, SeqLen, Channels)
+        # (Batch, 128, 64) -> (Batch, 64, 128)
+        x = x.permute(0, 2, 1)
+
+        # Apply Recurrent Memory
+        # LSTM returns the output sequence and the hidden states (which we discard with `_`)
+        # Output shape: (Batch, 64, 128)
+        x, _ = self.lstm(x)
+
+        # Permute back to (Batch, Channels, SeqLen): (Batch, 128, 64)
+        x = x.permute(0, 2, 1)
 
         x = self.global_pool(x)
         x = self.flatten(x)
