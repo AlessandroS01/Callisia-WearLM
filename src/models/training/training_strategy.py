@@ -88,7 +88,8 @@ def train_epoch(model, train_loader, optimizer, loss_function, device):
         num_batches += 1
 
         if (batch_idx + 1) % 10 == 0:
-            print(f"  Batch [{batch_idx + 1}/{len(train_loader)}] - Loss: {weighted_loss.item():.4f}")
+            print(f"  Batch [{batch_idx + 1}/{len(train_loader)}] - "
+                  f"Loss: {weighted_loss.item():.4f}")
 
     return epoch_loss / num_batches
 
