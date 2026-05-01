@@ -5,6 +5,7 @@
 /.idea/modules.xml
 /.idea/vcs.xml
 /.idea/inspectionProfiles/profiles_settings.xml
+
 /models/block_1/
 /data/processed/dalia/S1/chest
 /data/processed/dalia/S2/chest
@@ -40,3 +41,4 @@
 
 /models/baselines/block_1/trial_1/best_model.pth
 /models/baselines/block_1/trial_2/best_model.pth
+/models/baselines/block_1/trial_3/best_model.pth
