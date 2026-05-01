@@ -462,22 +462,12 @@ class TrainingStrategy:
                         pred = model(x_batch).squeeze()
                         target = y_batch.squeeze()
 
-                        # 1. Calculate the raw, un-averaged loss for every sample in the batch
-                        # This returns an array of losses, e.g., [1.2, 4.5, 0.8, 12.1]
                         base_loss = loss_fn(pred, target)
-
-                        # 2. Create the Weight Mask
-                        # Start by giving every sample a standard weight of 1.0
                         weights = torch.ones_like(target)
-
-                        # 3. The Math Fix: If the actual heart rate is > 120, change its weight to 3.0
                         weights[target > 120.0] = 3.0
-
-                        # 4. Multiply the base loss by our custom weights, THEN take the mean
                         weighted_loss = (base_loss * weights).mean()
-
-                        # 5. Backpropagate the heavily penalized loss
                         weighted_loss.backward()
+
                         optimizer.step()
 
                     # Validate
