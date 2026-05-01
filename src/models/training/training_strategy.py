@@ -26,6 +26,7 @@ import torch
 from optuna.pruners import MedianPruner
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+from typing_extensions import deprecated
 
 from src.data.dataset.hr_dataset import HRDataset
 from src.models.architecture.hr_cnn import MultimodalHRNet
@@ -239,7 +240,8 @@ class TrainingStrategy:
 
         # Save best hyperparameters with baseline metrics after full training
         avg_mae = np.mean([fold['metrics'].get('mae', 0) for fold in fold_results])
-        self._save_best_hyperparameters(best_params, float(avg_mae))
+        avg_std_error = np.mean([fold['metrics'].get('std_error', 0) for fold in fold_results])
+        self._save_best_hyperparameters(best_params, float(avg_mae), float(avg_std_error))
 
     def _train_loso_full(self) -> List[Dict]:
         """Leave-One-Subject-Out cross-validation (full 15-patient LOSO).
@@ -317,7 +319,8 @@ class TrainingStrategy:
             )
             test_metrics['num_samples'] = len(predictions)
             print(f"Test Loss: {avg_test_loss:.4f}")
-            print(f"Test MAE: {test_metrics.get('mae', 0):.4f} bpm\n")
+            print(f"Test MAE: {test_metrics.get('mae', 0):.4f} bpm")
+            print(f"Test Std Dev Error: {test_metrics.get('std_error', 0):.4f} bpm\n")
 
             # Save fold artifacts
             self._save_fold_artifacts(
@@ -630,6 +633,7 @@ class TrainingStrategy:
             HRDataset(x_test, y_test)
         )
 
+    @deprecated("Ensembling is not currently used in the main training flow.")
     def _create_ensemble_model(self, models_run_dir: str, num_folds: int) -> None:
         """Create averaged model from all folds."""
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -699,13 +703,15 @@ class TrainingStrategy:
             fold_dir, epochs_data, predictions, targets, test_metrics
         )
 
-    def _save_best_hyperparameters(self, best_params: Dict, avg_mae: float) -> None:
+    def _save_best_hyperparameters(self, best_params: Dict, avg_mae: float,
+                                     avg_std_error: float = None) -> None:
         """Save best hyperparameters found by Optuna to run config file with baseline metrics.
 
         Args:
             best_params: Dictionary with best_hyperparameters: learning_rate, scheduler_patience,
                         batch_size, num_epochs, loss_beta, optimizer_weight_decay
             avg_mae: Average MAE from full LOSO training (baseline metric)
+            avg_std_error: Average standard deviation of errors from full LOSO training
         """
         if not self.run_dir:
             print("⚠ Warning: run_dir is not set, skipping hyperparameter save\n")
@@ -725,9 +731,12 @@ class TrainingStrategy:
             },
             'baseline_metric': {
                 'average_mae_bpm': float(avg_mae) if avg_mae is not None else None,
-                'description': 'Average MAE (beats per minute) from full 15-subject LOSO training'
+                'average_std_error_bpm':
+                    float(avg_std_error) if avg_std_error is not None else None,
+                'description': 'Average MAE and Std Dev (beats per minute) from full 15-subject'
+                               ' LOSO training'
             },
-            'notes': 'Best hyperparameters 10-trial Optuna optimization on 6-subject mini-LOSO'
+            'notes': 'Best hyperparameters from Optuna optimization on 6-subject mini-LOSO'
         }
 
         with open(config_path, 'w', encoding='utf-8') as f:
