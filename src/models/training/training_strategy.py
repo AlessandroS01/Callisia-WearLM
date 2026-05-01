@@ -36,8 +36,33 @@ from src.models.training.block_1_data_loader import Block1TrainingDataLoader
 
 # ==================== CORE TRAINING FUNCTIONS ====================
 
+def _reduce_loss(loss: torch.Tensor) -> torch.Tensor:
+    """Reduce loss tensor to scalar if needed (handles reduction='none' case)."""
+    if loss.dim() > 0:
+        return loss.mean()
+    return loss
+
+
+def _compute_eval_batch_loss(predictions, targets, loss_function):
+    """
+    Compute and reduce loss for evaluation batches (validation/testing).
+
+    Handles both reduction='none' and standard reduction cases.
+
+    Args:
+        predictions: Model predictions (will be squeezed)
+        targets: Target values (will be squeezed)
+        loss_function: Loss function to compute loss
+
+    Returns:
+        torch.Tensor: Scalar loss value
+    """
+    loss = loss_function(predictions.squeeze(), targets.squeeze())
+    return _reduce_loss(loss)
+
+
 def train_epoch(model, train_loader, optimizer, loss_function, device):
-    """Execute a single training epoch."""
+    """Execute a single training epoch with cost-sensitive weighted loss."""
     model.train()
     epoch_loss = 0.0
     num_batches = 0
@@ -47,16 +72,23 @@ def train_epoch(model, train_loader, optimizer, loss_function, device):
         y_batch = y_batch.to(device)
 
         optimizer.zero_grad()
-        predictions = model(x_batch)
-        loss = loss_function(predictions.squeeze(), y_batch.squeeze())
-        loss.backward()
+        pred = model(x_batch).squeeze()
+        target = y_batch.squeeze()
+
+        # Cost-sensitive loss: penalize high heart rate predictions more
+        base_loss = loss_function(pred, target)
+        weights = torch.ones_like(target)
+        weights[target > 120.0] = 3.0
+        weighted_loss = (base_loss * weights).mean()
+
+        weighted_loss.backward()
         optimizer.step()
 
-        epoch_loss += loss.item()
+        epoch_loss += weighted_loss.item()
         num_batches += 1
 
         if (batch_idx + 1) % 10 == 0:
-            print(f"  Batch [{batch_idx + 1}/{len(train_loader)}] - Loss: {loss.item():.4f}")
+            print(f"  Batch [{batch_idx + 1}/{len(train_loader)}] - Loss: {weighted_loss.item():.4f}")
 
     return epoch_loss / num_batches
 
@@ -73,7 +105,7 @@ def validate(model, valid_loader, loss_function, device):
             y_batch = y_batch.to(device)
 
             predictions = model(x_batch)
-            loss = loss_function(predictions.squeeze(), y_batch.squeeze())
+            loss = _compute_eval_batch_loss(predictions, y_batch, loss_function)
 
             epoch_loss += loss.item()
             num_batches += 1
@@ -99,7 +131,7 @@ def test(model, test_loader, loss_function, device):
             y_batch = y_batch.to(device)
 
             predictions = model(x_batch)
-            loss = loss_function(predictions.squeeze(), y_batch.squeeze())
+            loss = _compute_eval_batch_loss(predictions, y_batch, loss_function)
 
             test_loss += loss.item()
             num_batches += 1
@@ -407,9 +439,9 @@ class TrainingStrategy:
 
                 # Create loss function with trial beta parameter
                 if self.loss_config.get('name') == 'SmoothL1Loss':
-                    loss_fn = torch.nn.SmoothL1Loss(beta=loss_beta_trial)
+                    loss_fn = torch.nn.SmoothL1Loss(beta=loss_beta_trial, reduction="none")
                 elif self.loss_config.get('name') == 'HuberLoss':
-                    loss_fn = torch.nn.HuberLoss(delta=loss_beta_trial)
+                    loss_fn = torch.nn.HuberLoss(delta=loss_beta_trial, reduction="none")
                 else:
                     loss_fn = torch.nn.MSELoss()
 
@@ -427,9 +459,25 @@ class TrainingStrategy:
                         y_batch = y_batch.to(device)
 
                         optimizer.zero_grad()
-                        pred = model(x_batch)
-                        loss = loss_fn(pred.squeeze(), y_batch.squeeze())
-                        loss.backward()
+                        pred = model(x_batch).squeeze()
+                        target = y_batch.squeeze()
+
+                        # 1. Calculate the raw, un-averaged loss for every sample in the batch
+                        # This returns an array of losses, e.g., [1.2, 4.5, 0.8, 12.1]
+                        base_loss = loss_fn(pred, target)
+
+                        # 2. Create the Weight Mask
+                        # Start by giving every sample a standard weight of 1.0
+                        weights = torch.ones_like(target)
+
+                        # 3. The Math Fix: If the actual heart rate is > 120, change its weight to 3.0
+                        weights[target > 120.0] = 3.0
+
+                        # 4. Multiply the base loss by our custom weights, THEN take the mean
+                        weighted_loss = (base_loss * weights).mean()
+
+                        # 5. Backpropagate the heavily penalized loss
+                        weighted_loss.backward()
                         optimizer.step()
 
                     # Validate
@@ -505,15 +553,16 @@ class TrainingStrategy:
         """Initialize loss function and scheduler. Returns (loss_function, scheduler).
 
         Reads scheduler parameters from config instead of using hardcoded values.
+        Uses reduction="none" to enable cost-sensitive per-sample weighting during training.
         """
         loss_beta = self.config.get('loss_beta', 1.0)
 
         if self.loss_config.get('name') == 'HuberLoss':
-            loss_function = torch.nn.HuberLoss(delta=loss_beta)
+            loss_function = torch.nn.HuberLoss(delta=loss_beta, reduction="none")
         elif self.loss_config.get('name') == 'SmoothL1Loss':
-            loss_function = torch.nn.SmoothL1Loss(beta=loss_beta)
+            loss_function = torch.nn.SmoothL1Loss(beta=loss_beta, reduction="none")
         else:
-            loss_function = torch.nn.MSELoss()
+            loss_function = torch.nn.MSELoss(reduction="none")
 
         scheduler_factor = self.config.get('scheduler_factor', 0.5)
         scheduler_patience = self.config.get('scheduler_patience', 3)
