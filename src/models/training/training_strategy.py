@@ -479,7 +479,8 @@ class TrainingStrategy:
                             x_batch = x_batch.to(device)
                             y_batch = y_batch.to(device)
                             pred = model(x_batch)
-                            val_loss += loss_fn(pred.squeeze(), y_batch.squeeze()).item()
+                            batch_loss = loss_fn(pred.squeeze(), y_batch.squeeze())
+                            val_loss += _reduce_loss(batch_loss).item()
 
                     val_loss /= len(val_loader)
                     best_val_loss = min(best_val_loss, val_loss)
