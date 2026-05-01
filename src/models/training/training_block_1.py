@@ -238,4 +238,4 @@ def get_split_patients():
     return loader.get_patients()
 
 if __name__ == "__main__":
-    train("split")
+    train("loso")

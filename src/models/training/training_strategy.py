@@ -398,8 +398,8 @@ class TrainingStrategy:
             learning_rate_trial = trial.suggest_float('learning_rate', 1e-7, 1e-3, log=True)
             scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 10)
             batch_size_trial = trial.suggest_categorical('batch_size', [16, 32, 64])
-            num_epochs_trial = trial.suggest_int('num_epochs', 5, 20)
-            loss_beta_trial = trial.suggest_float('loss_beta', 0.1, 10.0)
+            num_epochs_trial = trial.suggest_int('num_epochs', 5, 50)
+            loss_beta_trial = trial.suggest_float('loss_beta', 5, 15)
             optimizer_weight_decay_trial = trial.suggest_float(
                 'optimizer_weight_decay', 1e-5, 1e-3, log=True
             )
