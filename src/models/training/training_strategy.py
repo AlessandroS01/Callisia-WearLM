@@ -78,7 +78,7 @@ def train_epoch(model, train_loader, optimizer, loss_function, device):
         # Cost-sensitive loss: penalize high heart rate predictions more
         base_loss = loss_function(pred, target)
         weights = torch.ones_like(target)
-        weights[target > 120.0] = 3.0
+        weights[target > 120.0] = 1.5
         weighted_loss = (base_loss * weights).mean()
 
         weighted_loss.backward()
