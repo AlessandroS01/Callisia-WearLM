@@ -389,17 +389,17 @@ class TrainingStrategy:
         print("Using 6-patient mini-LOSO for validation\n")
 
         # Use predefined subjects for mini-LOSO
-        mini_subjects = ["S1", "S2", "S3", "S5", "S11", "S7"]
+        mini_subjects = ["S1", "S2", "S3", "S5", "S7", "S11"]
         print(f"Mini-LOSO subjects: {', '.join(mini_subjects)}\n")
 
         def objective(trial: optuna.Trial) -> float:
             """Objective function for Optuna optimization."""
             # Suggest hyperparameters
             learning_rate_trial = trial.suggest_float('learning_rate', 1e-7, 1e-3, log=True)
-            scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 10)
+            scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 7)
             batch_size_trial = trial.suggest_categorical('batch_size', [16, 32, 64])
-            num_epochs_trial = trial.suggest_int('num_epochs', 5, 50)
-            loss_beta_trial = trial.suggest_float('loss_beta', 5, 15)
+            num_epochs_trial = trial.suggest_int('num_epochs', 15, 35)
+            loss_beta_trial = trial.suggest_float('loss_beta', 2, 15)
             optimizer_weight_decay_trial = trial.suggest_float(
                 'optimizer_weight_decay', 1e-5, 1e-3, log=True
             )
@@ -449,8 +449,8 @@ class TrainingStrategy:
                 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
                                             patience=scheduler_patience_trial, min_lr=1e-7)
 
-                # Quick training (fewer epochs for tuning - use trial epochs or 1/4 of tuning)
-                tuning_epochs = max(3, num_epochs_trial // 4)  # 1/4 of trial epochs
+                # Quick training (fewer epochs for tuning - use trial epochs or 1/3 of tuning)
+                tuning_epochs = max(3, num_epochs_trial // 3)  # 1/3 of trial epochs
                 best_val_loss = float('inf')
 
                 for epoch in range(tuning_epochs):
@@ -465,7 +465,7 @@ class TrainingStrategy:
 
                         base_loss = loss_fn(pred, target)
                         weights = torch.ones_like(target)
-                        weights[target > 120.0] = 3.0
+                        weights[target > 120.0] = 1.5
                         weighted_loss = (base_loss * weights).mean()
                         weighted_loss.backward()
 
@@ -511,9 +511,9 @@ class TrainingStrategy:
             pruner=MedianPruner()
         )
 
-        # Run optimization with exactly 100 trials
-        print("Running 200 Optuna trials...\n")
-        study.optimize(objective, n_trials=200, show_progress_bar=True)
+        # Run optimization with exactly 50 trials
+        print("Running 100 Optuna trials...\n")
+        study.optimize(objective, n_trials=100, show_progress_bar=True)
 
         # Get best trial
         best_trial = study.best_trial
