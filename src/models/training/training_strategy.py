@@ -398,7 +398,7 @@ class TrainingStrategy:
             learning_rate_trial = trial.suggest_float('learning_rate', 1e-7, 1e-3, log=True)
             scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 7)
             batch_size_trial = trial.suggest_categorical('batch_size', [16, 32, 64])
-            num_epochs_trial = trial.suggest_int('num_epochs', 15, 35)
+            num_epochs_trial = trial.suggest_int('num_epochs', 10, 20)
             loss_beta_trial = trial.suggest_float('loss_beta', 2, 15)
             optimizer_weight_decay_trial = trial.suggest_float(
                 'optimizer_weight_decay', 1e-5, 1e-3, log=True
@@ -512,8 +512,8 @@ class TrainingStrategy:
         )
 
         # Run optimization with exactly 50 trials
-        print("Running 100 Optuna trials...\n")
-        study.optimize(objective, n_trials=100, show_progress_bar=True)
+        print("Running 30 Optuna trials...\n")
+        study.optimize(objective, n_trials=30, show_progress_bar=True)
 
         # Get best trial
         best_trial = study.best_trial
