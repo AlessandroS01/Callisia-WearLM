@@ -7,6 +7,35 @@ estimation from bvp and acc wearable sensors.
 from torch import nn
 
 class TemporalAttentionBlock(nn.Module):
+    """
+    A Temporal Multi-Head Self-Attention module designed for continuous physiological time-series data.
+
+    This block acts as a dynamic noise-rejection filter. By looking at the entire window
+    simultaneously, it learns to assign lower attention weights to time steps corrupted by
+    high-variance motion artifacts (e.g., arm swings) and higher weights to clean gaps
+    containing the true Biological Volume Pulse (BVP).
+
+    Args:
+        feature_dim (int): The number of input features per time step (default: 128).
+                           Must match the output channels of the preceding CNN block.
+        num_heads (int): The number of parallel attention heads (default: 4).
+                         Splits the feature dimension to look for different noise patterns.
+
+    Inputs:
+        x (Tensor): The sequence tensor coming from the CNN feature extractor.
+                    Expected shape: (Batch_Size, Sequence_Length, Features).
+                    Example: (32, 64, 128) for an 8-second window.
+
+    Outputs:
+        Tensor: The attention-weighted sequence with identical shape to the input:
+                (Batch_Size, Sequence_Length, Features).
+
+    Architecture Notes:
+        - Employs a Residual (Skip) Connection to prevent vanishing gradients during early
+          epochs before the attention matrix has learned meaningful weights.
+        - Utilizes Layer Normalization (LayerNorm) to stabilize the massive variance
+          differences between resting states and high-activity states.
+    """
     def __init__(self, feature_dim=128, num_heads=4, dropout=0.1):
         super().__init__()
         
