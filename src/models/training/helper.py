@@ -9,7 +9,7 @@ class TrainingHelper:
 
     # ==================== CORE TRAINING FUNCTIONS ====================
 
-    def _reduce_loss(self, loss: torch.Tensor) -> torch.Tensor:
+    def reduce_loss(self, loss: torch.Tensor) -> torch.Tensor:
         """Reduce loss tensor to scalar if needed (handles reduction='none' case)."""
         if loss.dim() > 0:
             return loss.mean()
@@ -30,10 +30,20 @@ class TrainingHelper:
             torch.Tensor: Scalar loss value
         """
         loss = loss_function(predictions.squeeze(), targets.squeeze())
-        return self._reduce_loss(loss)
+        return self.reduce_loss(loss)
 
-    def train_epoch(self, model, train_loader, optimizer, loss_function, device):
-        """Execute a single training epoch with cost-sensitive weighted loss."""
+    def train_epoch(self, model, train_loader, optimizer, loss_function, device,
+                    weight_multiplier: float = 1.5):
+        """Execute a single training epoch with cost-sensitive weighted loss.
+        
+        Args:
+            model: The neural network model
+            train_loader: DataLoader for training data
+            optimizer: Optimizer for training
+            loss_function: Loss function to compute loss
+            device: Device to run on (cuda or cpu)
+            weight_multiplier: Multiplier for loss when target > 120 BPM (default: 1.5)
+        """
         model.train()
         epoch_loss = 0.0
         num_batches = 0
@@ -49,7 +59,7 @@ class TrainingHelper:
             # Cost-sensitive loss: penalize high heart rate predictions more
             base_loss = loss_function(pred, target)
             weights = torch.ones_like(target)
-            weights[target > 120.0] = 3.0
+            weights[target > 120.0] = weight_multiplier
             weighted_loss = (base_loss * weights).mean()
 
             weighted_loss.backward()

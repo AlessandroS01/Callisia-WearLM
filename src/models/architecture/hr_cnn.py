@@ -193,8 +193,6 @@ class MultimodalHRNet(nn.Module):
         # --- RECURRENT MEMORY BLOCK ---
         # Feed these 64 steps into a Bidirectional LSTM to smooth out high peaks.
         # input_size=128 (from block4 channels), hidden_size=64.
-        # Because it's bidirectional (looks forward and backward in time),
-        # the output will be 64 * 2 = 128 features.
         self.lstm = nn.LSTM(
             input_size=128, hidden_size=64,
             num_layers=1, batch_first=True, bidirectional=True
