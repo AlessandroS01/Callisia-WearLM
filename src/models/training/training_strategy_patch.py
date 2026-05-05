@@ -332,7 +332,7 @@ class TrainingStrategyPatch:
                 best_val_loss = float('inf')
 
                 # Create warmup + cosine schedulers for this trial
-                warmup_sched, cosine_sched = self.helper.get_warmup_cosine_scheduler(
+                scheduler = self.helper.get_warmup_cosine_scheduler(
                     optimizer,
                     num_epochs=tuning_epochs,
                     num_batches_per_epoch=len(train_loader),
@@ -364,8 +364,7 @@ class TrainingStrategyPatch:
                         weighted_loss.backward()
 
                         optimizer.step()
-                        warmup_sched.step()
-                        cosine_sched.step()
+                        scheduler.step()
 
                     # Validation
                     model.eval()
