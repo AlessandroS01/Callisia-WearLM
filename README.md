@@ -491,14 +491,14 @@ handler.extract_data(output_dir="data/processed/wesad")
 ### **3. Training**
 
 ```python
-from src.models.training.training_strategy import TrainingStrategy
+from src.models.training.training_strategy_cnn import TrainingStrategyCNN
 
 # Development mode (fast)
-trainer = TrainingStrategy(method='split')
+trainer = TrainingStrategyCNN(method='split')
 trainer.train()
 
 # Production mode (thorough)
-trainer = TrainingStrategy(method='loso')
+trainer = TrainingStrategyCNN(method='loso')
 trainer.train()
 ```
 

@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch.optim.lr_scheduler import LambdaLR
 
 
 class TrainingHelper:
@@ -134,4 +135,63 @@ class TrainingHelper:
 
         return avg_loss, all_predictions, all_targets
 
+    def get_warmup_cosine_scheduler(self, optimizer, num_epochs: int, num_batches_per_epoch: int,
+                                    warmup_epochs: int = 2):
+        """
+        Creates a unified warmup + cosine annealing scheduler for Transformer models.
+        Updates per-batch (not per-epoch) for ultra-smooth learning rate adjustments.
+        """
+        total_steps = num_epochs * num_batches_per_epoch
+        warmup_steps = warmup_epochs * num_batches_per_epoch
 
+        def unified_lr_lambda(current_step: int) -> float:
+            """Calculates the learning rate multiplier for the current batch step."""
+
+            # PHASE 1: Linear Warmup (Ramp from 0.0 to 1.0)
+            if current_step < warmup_steps:
+                return float(current_step) / float(max(1, warmup_steps))
+
+            # PHASE 2: Cosine Annealing (Decay from 1.0 to 0.0)
+            progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+            return max(0.0, 0.5 * (1.0 + np.cos(np.pi * progress)))
+
+        # Return a SINGLE scheduler
+        scheduler = LambdaLR(optimizer, unified_lr_lambda)
+
+        return scheduler
+
+    def apply_patch_masking(self, x_batch: torch.Tensor, mask_ratio: float = 0.1) -> torch.Tensor:
+        """Apply random patch masking for regularization (Transformer-specific).
+
+        This is a form of data augmentation/regularization that randomly masks out
+        entire time patches from the input, forcing the model to learn robust representations.
+
+        Args:
+            x_batch: Input tensor of shape (batch_size, channels, sequence_length)
+            mask_ratio: Ratio of patches to mask out (default: 0.1 = 10%)
+
+        Returns:
+            torch.Tensor: Masked input batch with same shape as input
+        """
+        batch_size, channels, seq_len = x_batch.shape
+
+        # For a typical setup: 512 sequence length / 16 patch size = 32 patches
+        # So we randomly mask about 3-4 patches for 10% masking
+
+        num_patches = seq_len // 16  # Assuming patch_size=16 from PatchHRNet
+        num_masks = max(1, int(num_patches * mask_ratio))
+
+        x_masked = x_batch.clone()
+
+        for b in range(batch_size):
+            # Randomly select patches to mask
+            masked_indices = np.random.choice(num_patches, size=num_masks, replace=False).tolist()
+
+            for patch_idx in masked_indices:
+                patch_idx = int(patch_idx)
+                start_idx = patch_idx * 16
+                end_idx = start_idx + 16
+                # Set masked patch to zero
+                x_masked[b, :, start_idx:end_idx] = 0.0
+
+        return x_masked

@@ -5,13 +5,13 @@ RECEIVES ALL DATA FROM training_block_1 - No imports from training_block_1!
 
 RESPONSIBILITIES:
 - Implement strategy pattern (split vs LOSO)
-- Orchestrate training loop and artifact saving
-- Delegates core training functions (train_epoch, validate, test) to TrainingHelper
+- Core training functions: train_epoch(), validate(), test()
+- Orchestrate training loop
+- Orchestrate artifact saving
 
 DEPENDENCY FLOW (ONE-WAY):
 training_block_1.py (Entry point - prepares all data)
-  → training_strategy.py (Receives all data as parameters)
-  → training_helper.py (Core training & evaluation functions)
+  → training_strategy_cnn.py (Receives all data as parameters)
   → block_1_data_loader.py (for LOSO patient splits)
   → evaluation_artifacts.py (for metrics & results)
 """
@@ -37,7 +37,7 @@ from src.models.training.helper import TrainingHelper
 
 # ==================== TRAINING STRATEGY CLASS ====================
 
-class TrainingStrategy:
+class TrainingStrategyCNN:
     """
     Implements Strategy pattern for training method selection.
 
@@ -397,6 +397,7 @@ class TrainingStrategy:
                                    weight_decay=weight_decay)
 
         raise ValueError(f"Unsupported optimizer: {self.optimizer_config.get('name')}")
+
 
     def _initialize_loss_and_scheduler(self, optimizer) -> Tuple:
         """Initialize loss function and scheduler. Returns (loss_function, scheduler).
