@@ -1,8 +1,13 @@
+"""
+    Helper module for training
+"""
+
 import numpy as np
 import torch
 
 
 class TrainingHelper:
+    """Helper class for training and evaluating models."""
 
     def __init__(self):
         pass
@@ -126,7 +131,7 @@ class TrainingHelper:
                 all_targets.extend(targets_list)
 
                 if (batch_idx + 1) % 5 == 0:
-                    print(f"    Batch [{batch_idx + 1}/{len(test_loader)}] - Loss: {loss.item():.4f}")
+                    print(f"Batch [{batch_idx + 1}/{len(test_loader)}] - Loss: {loss.item():.4f}")
 
         avg_loss = test_loss / num_batches
         print(f"Test completed - "

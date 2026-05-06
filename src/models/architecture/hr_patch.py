@@ -5,7 +5,7 @@ estimation from bvp and acc wearable sensors.
 """
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class PatchHRNet(nn.Module):
@@ -61,13 +61,13 @@ class PatchHRNet(nn.Module):
 
         # 1. The Patching Engine
         # 512 time steps / 16 (patch_size) = 32 patches.
-        # This Conv1d doesn't overlap. It strictly chops the sequence into 32 blocks of 0.25 seconds.
+        # Conv1d doesn't overlap. It strictly chops the sequence into 32 blocks of 0.25 seconds.
         self.patcher = nn.Conv1d(
             in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
         self.num_patches = seq_len // patch_size
 
         # 2. Positional Encoding
-        # Transformers have no concept of time. We must mathematically inject the order of the patches.
+        # Transformers have no concept of time. Must inject the order of the patches.
         self.pos_embed = nn.Parameter(torch.randn(1, self.num_patches, embed_dim) * 0.02)
         self.pos_drop = nn.Dropout(p=dropout)
 
@@ -92,6 +92,7 @@ class PatchHRNet(nn.Module):
         )
 
     def forward(self, x):
+        """Forward pass"""
         # x shape: (Batch, 4, 512)
 
         # 1. Create Patches: (Batch, 4, 512) -> (Batch, 128, 32)

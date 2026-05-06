@@ -224,7 +224,8 @@ class TrainingStrategyCNN:
 
             # Test
             print("Testing...")
-            avg_test_loss, predictions, targets = self.helper.test(model, test_loader, loss_function, device)
+            avg_test_loss, predictions, targets = (
+                self.helper.test(model, test_loader, loss_function, device))
 
             # Calculate metrics
             test_metrics = EvaluationArtifacts.calculate_metrics(

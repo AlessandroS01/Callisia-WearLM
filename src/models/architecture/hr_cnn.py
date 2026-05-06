@@ -8,7 +8,8 @@ from torch import nn
 
 class TemporalAttentionBlock(nn.Module):
     """
-    A Temporal Multi-Head Self-Attention module designed for continuous physiological time-series data.
+    A Temporal Multi-Head Self-Attention module designed for continuous physiological
+    time-series data.
 
     This block acts as a dynamic noise-rejection filter. By looking at the entire window
     simultaneously, it learns to assign lower attention weights to time steps corrupted by
@@ -38,29 +39,25 @@ class TemporalAttentionBlock(nn.Module):
     """
     def __init__(self, feature_dim=128, num_heads=4, dropout=0.1):
         super().__init__()
-        
         # The core attention mechanism (batch_first=True matches our LSTM setup)
         self.attention = nn.MultiheadAttention(
-            embed_dim=feature_dim, 
-            num_heads=num_heads, 
-            dropout=dropout, 
+            embed_dim=feature_dim,
+            num_heads=num_heads,
+            dropout=dropout,
             batch_first=True
         )
-        
         # Standard Transformer stabilization techniques
         self.norm = nn.LayerNorm(feature_dim)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
+        """Forward pass"""
         # x expected shape: (Batch, SeqLen, Features)
-        
         # Self-Attention: Query, Key, and Value are all the same input sequence
         # We only care about the output tensor, we can discard the raw weights with `_` for now
         attn_out, _ = self.attention(query=x, key=x, value=x)
-        
         # Residual Connection & Layer Normalization (Crucial to prevent vanishing gradients)
         x = self.norm(x + self.dropout(attn_out))
-        
         return x
 
 class ChannelAttention(nn.Module):
@@ -235,7 +232,6 @@ class MultimodalHRNet(nn.Module):
         # Permute from (Batch, Channels, SeqLen) to (Batch, SeqLen, Channels)
         # (Batch, 128, 64) -> (Batch, 64, 128)
         x = x.permute(0, 2, 1)
-        
         x = self.temporal_attention(x)
         # Apply Recurrent Memory
         # LSTM returns the output sequence and the hidden states (which we discard with `_`)
@@ -250,7 +246,6 @@ class MultimodalHRNet(nn.Module):
         out = self.fc_layers(x)
 
         return out.squeeze()
-
 
 if __name__ == '__main__':
     model = MultimodalHRNet()
