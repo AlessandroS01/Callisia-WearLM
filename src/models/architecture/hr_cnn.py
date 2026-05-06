@@ -114,7 +114,7 @@ class ConvBlock(nn.Module):
             out = out + x
         return out
 
-@deprecated("This model is deprecated. Use BeliefPPG model for improved performance and efficiency.")
+@deprecated("This model is deprecated. Use BeliefPPG model for improved efficiency.")
 class MultimodalHRNet(nn.Module):
     """Multi-modal 1D CNN for heart-rate estimation from wearable sensors.
 

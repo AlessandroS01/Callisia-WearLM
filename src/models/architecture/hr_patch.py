@@ -9,7 +9,7 @@ from torch import nn
 from typing_extensions import deprecated
 
 
-@deprecated("This model is deprecated. Use BeliefPPG model for improved performance and efficiency.")
+@deprecated("This model is deprecated. Use BeliefPPG model for improved efficiency.")
 class PatchHRNet(nn.Module):
     """
     A Patch-Based Transformer Encoder for State-of-Art physiological time-series regression.

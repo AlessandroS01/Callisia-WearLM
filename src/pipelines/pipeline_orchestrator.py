@@ -70,7 +70,7 @@ class PipelineOrchestrator:
         :return: A dictionary containing all configuration parameters.
         :raises FileNotFoundError: If the specified config file does not exist.
         """
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
         return config
 

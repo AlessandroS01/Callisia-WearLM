@@ -42,4 +42,3 @@ class LLMInsightsPipeline:
             time indices) from the SignalProcessingPipeline, aggregate the
             data, and trigger the LLM inference.
         """
-        pass
