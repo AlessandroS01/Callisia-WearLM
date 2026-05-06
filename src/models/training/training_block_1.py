@@ -6,12 +6,12 @@ RESPONSIBILITIES:
 - Config management: [load_training_config(), get_optimizer_config(),
                         get_loss_config(), save_run_config()]
 
-ALL TRAINING LOGIC is in training_strategy.py
+ALL TRAINING LOGIC is in training_strategy_cnn.py
 
 DEPENDENCY FLOW:
 training_block_1.py (Entry point + Config)
   ↓ imports TrainingStrategy
-training_strategy.py (Orchestrator + Training logic)
+training_strategy_cnn.py (Orchestrator + Training logic)
 """
 
 import json
@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from src.data.dataset.hr_dataset import HRDataset
 from src.models.block_utils import setup_run_directory
 from src.models.training.block_1_data_loader import Block1TrainingDataLoader
-from src.models.training.training_strategy import TrainingStrategy
+from src.models.training.training_strategy_cnn import TrainingStrategyCNN
 
 
 def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs: int,
@@ -212,7 +212,7 @@ def train(method: str = 'split') -> None:
                     training_method=method)
 
     # ==================== 5. DELEGATE TO TRAINING STRATEGY ====================
-    trainer = TrainingStrategy(
+    trainer = TrainingStrategyCNN(
         method=method,
         config=config,
         learning_rate=learning_rate,
@@ -238,4 +238,4 @@ def get_split_patients():
     return loader.get_patients()
 
 if __name__ == "__main__":
-    train("split")
+    train("loso")

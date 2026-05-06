@@ -11,7 +11,7 @@ RESPONSIBILITIES:
 
 DEPENDENCY FLOW (ONE-WAY):
 training_block_1.py (Entry point - prepares all data)
-  → training_strategy.py (Receives all data as parameters)
+  → training_strategy_cnn.py (Receives all data as parameters)
   → block_1_data_loader.py (for LOSO patient splits)
   → evaluation_artifacts.py (for metrics & results)
 """
@@ -32,133 +32,12 @@ from src.data.dataset.hr_dataset import HRDataset
 from src.models.architecture.hr_cnn import MultimodalHRNet
 from src.models.evaluation_artifacts import EvaluationArtifacts
 from src.models.training.block_1_data_loader import Block1TrainingDataLoader
-
-
-# ==================== CORE TRAINING FUNCTIONS ====================
-
-def _reduce_loss(loss: torch.Tensor) -> torch.Tensor:
-    """Reduce loss tensor to scalar if needed (handles reduction='none' case)."""
-    if loss.dim() > 0:
-        return loss.mean()
-    return loss
-
-
-def _compute_eval_batch_loss(predictions, targets, loss_function):
-    """
-    Compute and reduce loss for evaluation batches (validation/testing).
-
-    Handles both reduction='none' and standard reduction cases.
-
-    Args:
-        predictions: Model predictions (will be squeezed)
-        targets: Target values (will be squeezed)
-        loss_function: Loss function to compute loss
-
-    Returns:
-        torch.Tensor: Scalar loss value
-    """
-    loss = loss_function(predictions.squeeze(), targets.squeeze())
-    return _reduce_loss(loss)
-
-
-def train_epoch(model, train_loader, optimizer, loss_function, device):
-    """Execute a single training epoch with cost-sensitive weighted loss."""
-    model.train()
-    epoch_loss = 0.0
-    num_batches = 0
-
-    for batch_idx, (x_batch, y_batch) in enumerate(train_loader):
-        x_batch = x_batch.to(device)
-        y_batch = y_batch.to(device)
-
-        optimizer.zero_grad()
-        pred = model(x_batch).squeeze()
-        target = y_batch.squeeze()
-
-        # Cost-sensitive loss: penalize high heart rate predictions more
-        base_loss = loss_function(pred, target)
-        weights = torch.ones_like(target)
-        weights[target > 120.0] = 3.0
-        weighted_loss = (base_loss * weights).mean()
-
-        weighted_loss.backward()
-        optimizer.step()
-
-        epoch_loss += weighted_loss.item()
-        num_batches += 1
-
-        if (batch_idx + 1) % 10 == 0:
-            print(f"  Batch [{batch_idx + 1}/{len(train_loader)}] - "
-                  f"Loss: {weighted_loss.item():.4f}")
-
-    return epoch_loss / num_batches
-
-
-def validate(model, valid_loader, loss_function, device):
-    """Evaluate model on validation set."""
-    model.eval()
-    epoch_loss = 0.0
-    num_batches = 0
-
-    with torch.no_grad():
-        for _, (x_batch, y_batch) in enumerate(valid_loader):
-            x_batch = x_batch.to(device)
-            y_batch = y_batch.to(device)
-
-            predictions = model(x_batch)
-            loss = _compute_eval_batch_loss(predictions, y_batch, loss_function)
-
-            epoch_loss += loss.item()
-            num_batches += 1
-
-        print(f"  Validation completed - Processed {num_batches} batches")
-
-    return epoch_loss / num_batches
-
-
-def test(model, test_loader, loss_function, device):
-    """Evaluate model on test set and collect predictions."""
-    model.eval()
-    test_loss = 0.0
-    num_batches = 0
-    all_predictions = []
-    all_targets = []
-
-    print("  Processing test batches...")
-
-    with torch.no_grad():
-        for batch_idx, (x_batch, y_batch) in enumerate(test_loader):
-            x_batch = x_batch.to(device)
-            y_batch = y_batch.to(device)
-
-            predictions = model(x_batch)
-            loss = _compute_eval_batch_loss(predictions, y_batch, loss_function)
-
-            test_loss += loss.item()
-            num_batches += 1
-
-            preds_np = predictions.squeeze().cpu().numpy()
-            targets_np = y_batch.squeeze().cpu().numpy()
-
-            preds_list = np.atleast_1d(preds_np).tolist()
-            targets_list = np.atleast_1d(targets_np).tolist()
-
-            all_predictions.extend(preds_list)
-            all_targets.extend(targets_list)
-
-            if (batch_idx + 1) % 5 == 0:
-                print(f"    Batch [{batch_idx + 1}/{len(test_loader)}] - Loss: {loss.item():.4f}")
-
-    avg_loss = test_loss / num_batches
-    print(f"Test completed - "
-          f"Processed {num_batches} batches with {len(all_predictions)} total samples")
-
-    return avg_loss, all_predictions, all_targets
+from src.models.training.helper import TrainingHelper
 
 
 # ==================== TRAINING STRATEGY CLASS ====================
 
-class TrainingStrategy:
+class TrainingStrategyCNN:
     """
     Implements Strategy pattern for training method selection.
 
@@ -199,6 +78,7 @@ class TrainingStrategy:
         self.run_dir = run_dir
         self.version = version
         self.loaders_data = loaders_data  # For split method
+        self.helper = TrainingHelper()  # Instantiate training helper for core functions
 
     def train(self) -> None:
         """Execute training with selected method."""
@@ -344,7 +224,8 @@ class TrainingStrategy:
 
             # Test
             print("Testing...")
-            avg_test_loss, predictions, targets = test(model, test_loader, loss_function, device)
+            avg_test_loss, predictions, targets = (
+                self.helper.test(model, test_loader, loss_function, device))
 
             # Calculate metrics
             test_metrics = EvaluationArtifacts.calculate_metrics(
@@ -389,17 +270,17 @@ class TrainingStrategy:
         print("Using 6-patient mini-LOSO for validation\n")
 
         # Use predefined subjects for mini-LOSO
-        mini_subjects = ["S1", "S2", "S3", "S5", "S11", "S7"]
+        mini_subjects = ["S1", "S2", "S3", "S5", "S7", "S11"]
         print(f"Mini-LOSO subjects: {', '.join(mini_subjects)}\n")
 
         def objective(trial: optuna.Trial) -> float:
             """Objective function for Optuna optimization."""
             # Suggest hyperparameters
             learning_rate_trial = trial.suggest_float('learning_rate', 1e-7, 1e-3, log=True)
-            scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 10)
+            scheduler_patience_trial = trial.suggest_int('scheduler_patience', 1, 7)
             batch_size_trial = trial.suggest_categorical('batch_size', [16, 32, 64])
-            num_epochs_trial = trial.suggest_int('num_epochs', 5, 50)
-            loss_beta_trial = trial.suggest_float('loss_beta', 5, 15)
+            num_epochs_trial = trial.suggest_int('num_epochs', 10, 20)
+            loss_beta_trial = trial.suggest_float('loss_beta', 2, 15)
             optimizer_weight_decay_trial = trial.suggest_float(
                 'optimizer_weight_decay', 1e-5, 1e-3, log=True
             )
@@ -449,42 +330,20 @@ class TrainingStrategy:
                 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
                                             patience=scheduler_patience_trial, min_lr=1e-7)
 
-                # Quick training (fewer epochs for tuning - use trial epochs or 1/4 of tuning)
-                tuning_epochs = max(3, num_epochs_trial // 4)  # 1/4 of trial epochs
+                # Quick training (fewer epochs for tuning - use trial epochs or 1/3 of tuning)
+                tuning_epochs = max(3, num_epochs_trial // 3)  # 1/3 of trial epochs
                 best_val_loss = float('inf')
 
                 for epoch in range(tuning_epochs):
-                    model.train()
-                    for x_batch, y_batch in train_loader:
-                        x_batch = x_batch.to(device)
-                        y_batch = y_batch.to(device)
+                    # Use helper methods for consistency with main training
+                    _ = self.helper.train_epoch(
+                        model, train_loader, optimizer, loss_fn, device,
+                        weight_multiplier=1.5
+                    )
+                    avg_val_loss = self.helper.validate(model, val_loader, loss_fn, device)
 
-                        optimizer.zero_grad()
-                        pred = model(x_batch).squeeze()
-                        target = y_batch.squeeze()
-
-                        base_loss = loss_fn(pred, target)
-                        weights = torch.ones_like(target)
-                        weights[target > 120.0] = 3.0
-                        weighted_loss = (base_loss * weights).mean()
-                        weighted_loss.backward()
-
-                        optimizer.step()
-
-                    # Validate
-                    model.eval()
-                    val_loss = 0.0
-                    with torch.no_grad():
-                        for x_batch, y_batch in val_loader:
-                            x_batch = x_batch.to(device)
-                            y_batch = y_batch.to(device)
-                            pred = model(x_batch)
-                            batch_loss = loss_fn(pred.squeeze(), y_batch.squeeze())
-                            val_loss += _reduce_loss(batch_loss).item()
-
-                    val_loss /= len(val_loader)
-                    best_val_loss = min(best_val_loss, val_loss)
-                    scheduler.step(val_loss)
+                    best_val_loss = min(best_val_loss, avg_val_loss)
+                    scheduler.step(avg_val_loss)
 
                     # Report intermediate value for pruning
                     trial.report(best_val_loss, epoch)
@@ -511,9 +370,9 @@ class TrainingStrategy:
             pruner=MedianPruner()
         )
 
-        # Run optimization with exactly 100 trials
-        print("Running 200 Optuna trials...\n")
-        study.optimize(objective, n_trials=200, show_progress_bar=True)
+        # Run optimization with exactly 50 trials
+        print("Running 30 Optuna trials...\n")
+        study.optimize(objective, n_trials=30, show_progress_bar=True)
 
         # Get best trial
         best_trial = study.best_trial
@@ -615,10 +474,13 @@ class TrainingStrategy:
             print(f"{'─'*70}\nEpoch {epoch + 1}/{num_epochs}\n{'─'*70}")
 
             print("  [1/2] Training phase...")
-            avg_train_loss = train_epoch(model, train_loader, optimizer, loss_function, device)
+            avg_train_loss = self.helper.train_epoch(
+                model, train_loader, optimizer, loss_function, device,
+                weight_multiplier=1.5
+            )
 
             print("\n  [2/2] Validation phase...")
-            avg_val_loss = validate(model, valid_loader, loss_function, device)
+            avg_val_loss = self.helper.validate(model, valid_loader, loss_function, device)
 
             improvement = "↓" if avg_val_loss < best_val_loss else "↑"
             loss_diff = abs(avg_val_loss - best_val_loss)
