@@ -387,7 +387,7 @@ trainer.train()
 ### **Training Configuration**
 
 ```yaml
-# Hyperparameters (config.yaml)
+# Hyperparameters (training_config.yaml)
 learning_rate: 0.0005        # Adam initial LR
 batch_size: 32               # Batch size for training
 num_epochs: 15               # Epochs per fold

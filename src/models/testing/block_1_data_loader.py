@@ -2,7 +2,7 @@
 
 Handles data loading and dataset preparation specifically for the Block 1 testing module.
 """
-from src.models.block_data_loader import BlockDataLoader
+from src.models.utils.block_data_loader import BlockDataLoader
 
 
 class Block1TestingDataLoader(BlockDataLoader):

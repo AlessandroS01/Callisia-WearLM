@@ -5,6 +5,8 @@ estimation from bvp and acc wearable sensors.
 """
 
 from torch import nn
+from typing_extensions import deprecated
+
 
 class TemporalAttentionBlock(nn.Module):
     """
@@ -112,7 +114,7 @@ class ConvBlock(nn.Module):
             out = out + x
         return out
 
-
+@deprecated("This model is deprecated. Use BeliefPPG model for improved efficiency.")
 class MultimodalHRNet(nn.Module):
     """Multi-modal 1D CNN for heart-rate estimation from wearable sensors.
 

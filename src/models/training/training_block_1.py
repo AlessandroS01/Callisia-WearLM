@@ -22,7 +22,7 @@ import yaml
 from torch.utils.data import DataLoader
 
 from src.data.dataset.hr_dataset import HRDataset
-from src.models.block_utils import setup_run_directory
+from src.models.utils.block_utils import setup_run_directory
 from src.models.training.block_1_data_loader import Block1TrainingDataLoader
 from src.models.training.training_strategy_cnn import TrainingStrategyCNN
 
@@ -35,7 +35,7 @@ def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs
 
     Params:
         run_dir: Path to the run directory
-        config: Configuration dictionary from config.yaml
+        config: Configuration dictionary from training_config.yaml
         learning_rate: Learning rate used for training
         num_epochs: Number of epochs
         dataset_config: Dictionary containing training/validation/test patient splits
@@ -84,12 +84,12 @@ def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs
     print(f"✓ Configuration saved to: {config_path}")
 
 
-def load_training_config(config_path: str = "../../../config.yaml") -> dict:
+def load_training_config(config_path: str = "../training_config.yaml") -> dict:
     """
     Loads the configuration from a YAML file.
 
     Params:
-        config_path: path to the config.yaml file
+        config_path: path to the training_config.yaml file
 
     Returns:
         dict: Configuration dictionary containing learning_rate, batch_size, and num_epochs
@@ -101,10 +101,10 @@ def load_training_config(config_path: str = "../../../config.yaml") -> dict:
 
 def get_optimizer_config() -> dict:
     """
-    Returns the optimizer configuration from config.yaml.
+    Returns the optimizer configuration from training_config.yaml.
 
     Single source of truth for optimizer settings.
-    Update config.yaml to change optimizer settings everywhere.
+    Update training_config.yaml to change optimizer settings everywhere.
 
     Returns:
         dict: Optimizer configuration with name and parameters
@@ -119,10 +119,10 @@ def get_optimizer_config() -> dict:
 
 def get_loss_config() -> dict:
     """
-    Returns the loss function configuration from config.yaml.
+    Returns the loss function configuration from training_config.yaml.
 
     Single source of truth for loss function settings.
-    Update config.yaml to change loss function settings everywhere.
+    Update training_config.yaml to change loss function settings everywhere.
 
     Returns:
         dict: Loss function configuration with name and parameters

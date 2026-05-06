@@ -30,9 +30,9 @@ from typing_extensions import deprecated
 
 from src.data.dataset.hr_dataset import HRDataset
 from src.models.architecture.hr_cnn import MultimodalHRNet
-from src.models.evaluation_artifacts import EvaluationArtifacts
 from src.models.training.block_1_data_loader import Block1TrainingDataLoader
 from src.models.training.helper import TrainingHelper
+from src.models.utils.evaluation_artifacts import EvaluationArtifacts
 
 
 # ==================== TRAINING STRATEGY CLASS ====================
