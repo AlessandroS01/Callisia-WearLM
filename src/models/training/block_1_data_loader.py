@@ -9,7 +9,7 @@ from typing import List, Tuple
 
 import numpy as np
 
-from src.models.block_data_loader import BlockDataLoader
+from src.models.utils.block_data_loader import BlockDataLoader
 
 
 class Block1TrainingDataLoader(BlockDataLoader):

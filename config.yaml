@@ -1,16 +1,17 @@
-learning_rate: 0.000999226099089968
-batch_size: 16
-num_epochs: 49
+# ==========================================
+# Pipeline Configuration: config.yaml
+# ==========================================
 
-loss_function: SmoothL1Loss
-loss_beta: 14.426328031947723
+data:
+  base_path: "data/processed/dalia"
+  # Uncomment to use the wesad dataset instead
+  # base_path: "data/processed/wesad"
 
-optimizer: Adam
-optimizer_weight_decay:  3.660465522765695e-05
+inference:
+  patient_id: "S1"
+  bvp_freq: 64
+  acc_freq: 32
 
-scheduler: ReduceLROnPlateau
-scheduler_factor: 0.5
-scheduler_patience: 4
-scheduler_min_lr: 0.0000001
-
-version: 8th_version
+params:
+  seconds_per_window: 8
+  step_size: 2

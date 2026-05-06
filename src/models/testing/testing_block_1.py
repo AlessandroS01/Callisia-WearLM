@@ -12,12 +12,12 @@ from torch.utils.data import DataLoader
 
 from src.data.dataset.hr_dataset import HRDataset
 from src.models.architecture.hr_cnn import MultimodalHRNet
-from src.models.block_utils import setup_run_directory
-from src.models.evaluation_artifacts import EvaluationArtifacts
+from src.models.utils.block_utils import setup_run_directory
+from src.models.utils.evaluation_artifacts import EvaluationArtifacts
 from src.models.testing.block_1_data_loader import Block1TestingDataLoader
 
 
-def load_config(config_path: str = "../../../config.yaml") -> dict:
+def load_config(config_path: str = "../training_config.yaml") -> dict:
     """Load configuration from YAML file."""
     with open(config_path, "r", encoding="utf-8") as config_file:
         config = yaml.safe_load(config_file)
@@ -36,7 +36,7 @@ def create_config_file(run_dir: str, model_path: str) -> None:
         'model': model_path
     }
 
-    config_path = os.path.join(run_dir, 'config.yaml')
+    config_path = os.path.join(run_dir, 'training_config.yaml')
     with open(config_path, 'w', encoding='utf-8') as f:
         yaml.dump(config, f, default_flow_style=False)
 
