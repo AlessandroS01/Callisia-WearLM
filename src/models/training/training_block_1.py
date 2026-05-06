@@ -25,7 +25,6 @@ from src.data.dataset.hr_dataset import HRDataset
 from src.models.block_utils import setup_run_directory
 from src.models.training.block_1_data_loader import Block1TrainingDataLoader
 from src.models.training.training_strategy_cnn import TrainingStrategyCNN
-from src.models.training.training_strategy_patch import TrainingStrategyPatch
 
 
 def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs: int,
@@ -213,7 +212,7 @@ def train(method: str = 'split') -> None:
                     training_method=method)
 
     # ==================== 5. DELEGATE TO TRAINING STRATEGY ====================
-    trainer = TrainingStrategyPatch(
+    trainer = TrainingStrategyCNN(
         method=method,
         config=config,
         learning_rate=learning_rate,
