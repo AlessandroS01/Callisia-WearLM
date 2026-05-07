@@ -119,6 +119,9 @@ class ClinicalAggregator:
 
         acc_variance = self._windowed_acc_variance(acc_magnitude)
 
+        print(hr_prediction.shape)
+        print(bvp_array.shape)
+
         return {
             "window_size_seconds": self.window_sec,
             "total_windows": len(acc_variance),
