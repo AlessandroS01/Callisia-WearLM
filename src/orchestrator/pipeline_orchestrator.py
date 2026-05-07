@@ -17,6 +17,7 @@ Typical usage example:
 
 import yaml
 
+from src.aggregators import ClinicalAggregator
 from src.pipelines.clinical_report_generator import ClinicalReportGenerator
 from src.pipelines.llm_insights_pipeline import LLMInsightsPipeline
 from src.pipelines.signal_processing_pipeline import SignalProcessingPipeline
@@ -52,15 +53,12 @@ class PipelineOrchestrator:
         self.config = self._load_config(config_path)
 
         # initialize pipelines
-        self.signal_pipeline = SignalProcessingPipeline(
-            config=self.config,
-        )
-        self.llm_pipeline = LLMInsightsPipeline(
-            config=self.config
-        )
-        self.report_generator = ClinicalReportGenerator(
-            config=self.config
-        )
+        self.signal_pipeline = SignalProcessingPipeline(config=self.config)
+        self.llm_pipeline = LLMInsightsPipeline(config=self.config)
+        self.report_generator = ClinicalReportGenerator(config=self.config)
+
+        # initialize aggregator
+        self.aggregator = ClinicalAggregator(config=self.config)
 
     def _load_config(self, config_path: str) -> dict:
         """
@@ -86,7 +84,10 @@ class PipelineOrchestrator:
         patient_id = self.config["inference"]["patient_id"]
 
         # Step 1: Run the inference pipeline to process raw sensor data and generate predictions.
-        self.signal_pipeline.run(patient_id=patient_id)
+        hr, _, bvp, acc = self.signal_pipeline.run(patient_id=patient_id)
+
+        print(f"[{patient_id}] Aggregating sensor features...")
+        self.aggregator.aggregate(hr_prediction=hr, bvp_array=bvp, acc_array=acc)
 
         # Step 2: Run the aggregation and LLM feed to interpret the data.
         self.llm_pipeline.run()

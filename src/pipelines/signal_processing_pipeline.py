@@ -58,8 +58,8 @@ class SignalProcessingPipeline:
         and the subsequent prediction of their continuous heart rate.
 
         :param patient_id: The unique identifier for the patient (e.g., 'S1').
-        :return: A tuple (hr, idxs) containing the predicted heart rate array
-                 and the corresponding time indices.
+        :return: A tuple (hr, idxs, bvp, acc) containing the predicted heart rate array, the
+                corresponding time indices, the bvp and acc data
         """
         print(f"[{patient_id}] Loading signals...")
 
@@ -70,4 +70,4 @@ class SignalProcessingPipeline:
         print(f"[{patient_id}] Predicting heart rate...")
         hr, idxs = self.predictor.predict(bvp_data=bvp, acc_data=acc)
 
-        return hr, idxs
+        return hr, idxs, bvp, acc
