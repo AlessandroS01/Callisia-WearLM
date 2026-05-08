@@ -300,7 +300,7 @@ class ClinicalAggregator:
         acc_variance = self._windowed_acc_variance(acc_magnitude)
 
         print(f"Length of HR predictions: {len(hr_prediction)}")
-        print(f"Length of ACC variance: {len(acc_variance)}")
+        print(f"Length of ACC windows variances: {len(acc_variance)}")
 
         # generation individual feature dictionaries
         cardiovascular_summary_stats = self._cardiovascular_statistics(hr_prediction)
