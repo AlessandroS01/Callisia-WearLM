@@ -67,7 +67,7 @@ class PipelineOrchestrator:
         patient_id = self.config["inference"]["patient_id"]
 
         # Step 1: Run the inference pipeline to process raw sensor data and generate predictions.
-        hr, _, bvp, acc = self.signal_pipeline.run(patient_id=patient_id)
+        hr, _, _, acc = self.signal_pipeline.run(patient_id=patient_id)
 
         print(f"[{patient_id}] Aggregating sensor features...")
         llm_payload = self.aggregator.aggregate(hr_prediction=hr, acc_array=acc)
