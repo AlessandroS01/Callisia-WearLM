@@ -22,9 +22,9 @@ import yaml
 from torch.utils.data import DataLoader
 
 from src.data.dataset.hr_dataset import HRDataset
-from src.models.utils.block_utils import setup_run_directory
 from src.models.training.block_1_data_loader import Block1TrainingDataLoader
 from src.models.training.training_strategy_cnn import TrainingStrategyCNN
+from src.models.utils.block_utils import setup_run_directory
 
 
 def save_run_config(run_dir: str, config: dict, learning_rate: float, num_epochs: int,

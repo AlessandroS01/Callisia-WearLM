@@ -15,12 +15,8 @@ Typical usage example:
     orchestrator.run_full_process()
 """
 
-import yaml
-
 from src.aggregators import ClinicalAggregator
-from src.pipelines.clinical_report_generator import ClinicalReportGenerator
-from src.pipelines.llm_insights_pipeline import LLMInsightsPipeline
-from src.pipelines.signal_processing_pipeline import SignalProcessingPipeline
+from src.pipelines import SignalProcessingPipeline, LLMInsightsPipeline, ClinicalReportGenerator
 
 
 class PipelineOrchestrator:
@@ -41,16 +37,15 @@ class PipelineOrchestrator:
                         and generating clinical text.
     :vartype llm_pipeline: LLMInsightsPipeline
     """
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config: dict):
         """
         Initializes the orchestrator by loading the YAML config and
         instantiating the sub-pipelines.
 
-        :param config_path: The file path to the YAML configuration file.
-                            Defaults to "config.yaml".
+        :param config: The dict containing all configuration parameters.
         """
         # initialize config
-        self.config = self._load_config(config_path)
+        self.config = config
 
         # initialize pipelines
         self.signal_pipeline = SignalProcessingPipeline(config=self.config)
@@ -59,18 +54,6 @@ class PipelineOrchestrator:
 
         # initialize aggregator
         self.aggregator = ClinicalAggregator(config=self.config)
-
-    def _load_config(self, config_path: str) -> dict:
-        """
-        Reads and parses the YAML configuration file.
-
-        :param config_path: The file path to the YAML configuration file.
-        :return: A dictionary containing all configuration parameters.
-        :raises FileNotFoundError: If the specified config file does not exist.
-        """
-        with open(config_path, 'r', encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        return config
 
     def run_full_process(self):
         """
@@ -87,7 +70,9 @@ class PipelineOrchestrator:
         hr, _, bvp, acc = self.signal_pipeline.run(patient_id=patient_id)
 
         print(f"[{patient_id}] Aggregating sensor features...")
-        self.aggregator.aggregate(hr_prediction=hr, bvp_array=bvp, acc_array=acc)
+        llm_payload = self.aggregator.aggregate(hr_prediction=hr, acc_array=acc)
+
+        print(f"[{patient_id}] LLM payload: \n{llm_payload}")
 
         # Step 2: Run the aggregation and LLM feed to interpret the data.
         self.llm_pipeline.run()

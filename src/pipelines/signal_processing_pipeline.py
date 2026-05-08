@@ -41,10 +41,10 @@ class SignalProcessingPipeline:
                                settings (sampling rates).
         """
         # Initialize config parameters
-        self.base_path = config['base_path']
+        self.base_path = config.get('base_path', "data/processed/dalia")
 
-        self.bvp_freq = config['inference']['bvp_freq']
-        self.acc_freq = config['inference']['acc_freq']
+        self.bvp_freq = config.get("inference", {}).get("bvp_freq", 64)
+        self.acc_freq = config.get("inference", {}).get("acc_freq", 32)
 
         # Initialize tools
         self.data_loader = DataLoader(base_path=self.base_path)

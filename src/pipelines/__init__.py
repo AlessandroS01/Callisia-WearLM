@@ -11,8 +11,8 @@ inference and natural language generation can scale, fail, and be tested
 independently.
 """
 from .clinical_report_generator import ClinicalReportGenerator
-from .signal_processing_pipeline import SignalProcessingPipeline
 from .llm_insights_pipeline import LLMInsightsPipeline
+from .signal_processing_pipeline import SignalProcessingPipeline
 
 # The __all__ list explicitly defines what gets imported when someone uses:
 # from src.pipelines import *

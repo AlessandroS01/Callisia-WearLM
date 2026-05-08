@@ -15,3 +15,13 @@ inference:
 params:
   seconds_per_window: 8
   step_size: 2
+
+thresholds:
+  # Thresholds for classifying activity levels based on the hardware for ACC.
+  # values can be adjusted
+  resting: 0.05
+  moving: 0.5
+
+orchestrator:
+  # Configuration for the orchestrator
+  run_interval_schedule: 120 # seconds
