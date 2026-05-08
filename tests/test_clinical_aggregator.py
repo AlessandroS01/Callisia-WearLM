@@ -1,3 +1,12 @@
+"""
+Unit tests for the ClinicalAggregator module.
+
+This test suite provides 100% coverage, including direct unit tests of
+protected helper methods and integration tests of the public pipeline.
+"""
+
+# pylint: disable=redefined-outer-name, protected-access
+
 import pytest
 import numpy as np
 
