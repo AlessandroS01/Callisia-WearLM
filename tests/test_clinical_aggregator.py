@@ -10,25 +10,6 @@ protected helper methods and integration tests of the public pipeline.
 import pytest
 import numpy as np
 
-from src.aggregators import ClinicalAggregator
-
-@pytest.fixture
-def base_config():
-    """Provides a standard baseline configuration for testing."""
-    return {
-        "params": {"seconds_per_window": 8, "step_size": 2},
-        "inference": {"bvp_freq": 64, "acc_freq": 32},
-        "orchestrator": {"run_interval_schedule": 120},
-        "thresholds": {"resting": 0.05, "moving": 0.5}
-    }
-
-
-@pytest.fixture
-def aggregator(base_config):
-    """Fixture to provide a reusable instance of the aggregator."""
-    return ClinicalAggregator(base_config)
-
-
 # ==========================================
 # TEST 1: Cardiovascular Zones & Trends
 # ==========================================
@@ -199,28 +180,24 @@ def test_hr_volatility_calculation(aggregator):
 # ==========================================
 # TEST 5: Integration & Upsampling Logic
 # ==========================================
-def test_aggregate_upsamples_acc_when_slower(base_config):
+def test_aggregate_upsamples_acc_when_slower(base_config, aggregator, real_acc_data):
     """
         Tests the end-to-end integration of the aggregate method, specifically
         ensuring that lower-frequency accelerometer data is properly upsampled
         to match the target inference rate without crashing.
         """
     # --- 1. ARRANGE ---
-    aggregator = ClinicalAggregator(base_config)
-
     duration = base_config["orchestrator"]["run_interval_schedule"]
     step = base_config["params"]["step_size"]
-    acc_freq = base_config["inference"]["acc_freq"]
+    window = base_config["params"]["seconds_per_window"]
 
-    # Calculate exact dynamic array sizes
-    total_hr_windows = int(duration / step)
-    total_acc_samples = duration * acc_freq
+    # The perfect mathematical formula:
+    total_windows = int((duration - window) / step) + 1
 
-    dummy_hr = np.full(total_hr_windows, 75.0)
-    dummy_acc = np.asarray(np.random.uniform(low=-0.1, high=0.1, size=(total_acc_samples, 3)))
+    dummy_hr = np.full(total_windows, 75.0)
 
     # --- 2. ACT ---
-    result = aggregator.aggregate(acc_array=dummy_acc, hr_prediction=dummy_hr)
+    result = aggregator.aggregate(acc_array=real_acc_data, hr_prediction=dummy_hr)
 
     # --- 3. ASSERT ---
     assert isinstance(result, dict)

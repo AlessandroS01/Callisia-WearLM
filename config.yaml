@@ -13,6 +13,9 @@ inference:
   acc_freq: 32
 
 params:
+  # model need at least 20 seconds of data to make a prediction
+  receptive_field_model_seconds: 20
+
   seconds_per_window: 8
   step_size: 2
 

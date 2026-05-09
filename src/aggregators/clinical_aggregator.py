@@ -56,6 +56,10 @@ class ClinicalAggregator:
         self.resting_threshold = config.get('thresholds', {}).get('resting', 0.05)
         self.moving_threshold = config.get('thresholds', {}).get('moving', 0.5)
 
+        # initialize receptive field of the model
+        self.receptive_field_model_seconds = (
+            config.get('params', {}).get('receptive_field_model_seconds', 20))
+
     def _upsample_signal(self, array: np.ndarray, factor: int) -> np.ndarray:
         """
         Upsamples a 1D signal by repeating its elements.
@@ -224,10 +228,25 @@ class ClinicalAggregator:
         :return: A dictionary containing the calculated correlation coefficient
                          and a human-readable string explaining the clinical context.
         """
+        # Mathematical offset according to neural network warm-up
+        # offset = (receptive field - window size sec) / step size sec
+        total_extra_windows = (
+                (self.receptive_field_model_seconds - self.window_sec) / self.step_sec)
+        offset = int(total_extra_windows / 2)
 
-        min_length = min(len(hr_predictions), len(acc_variance_array))
-        hr_sync = hr_predictions[:min_length]
-        acc_sync = acc_variance_array[:min_length]
+        # Strip the first 3 and last 3 windows off the ACC array
+        # so it perfectly aligns with the center of the HR predictions
+        if len(acc_variance_array) > 2 * offset:
+            acc_sync = acc_variance_array[offset: -offset]
+        else:
+            acc_sync = acc_variance_array
+
+        hr_sync = hr_predictions
+
+        # Safety fallback just in case of rounding differences at the tail end
+        min_length = min(len(hr_sync), len(acc_sync))
+        hr_sync = hr_sync[:min_length]
+        acc_sync = acc_sync[:min_length]
 
         # correlation between hr and movement
         correlation = float(np.corrcoef(hr_sync, acc_sync)[0, 1])
@@ -309,10 +328,19 @@ class ClinicalAggregator:
         correlation_stats = self._signal_correlation(hr_prediction, acc_variance)
 
         payload = {
-            "total_recording_duration_seconds": self.total_duration,
-            "rolling_window_duration_seconds": self.window_sec,
-            "rolling_window_step_seconds": self.step_sec,
-            "array_elements_per_window": self.window_size,
+            "system_telemetry": {
+                "total_recording_duration_seconds": self.total_duration,
+                "rolling_window_duration_seconds": self.window_sec,
+                "rolling_window_step_seconds": self.step_sec,
+                "array_elements_per_window": self.window_size,
+                "model_receptive_field_seconds": self.receptive_field_model_seconds,
+                "data_alignment_note": (
+                    "Expected behavior: The cardiovascular_analysis contains slightly fewer "
+                    "predictions than the movement_analysis. This is caused by the ML model's "
+                    f"{self.receptive_field_model_seconds}-second historical receptive field,"
+                    f" NOT a sensor failure or missing data."
+                )
+            },
             "cardiovascular_analysis": cardiovascular_summary_stats,
             "movement_analysis": movement_summary_stats,
             "autonomic_nervous_system_proxy": volatility_stats,
