@@ -11,6 +11,8 @@ loaders intelligently slice the raw CSV files to perfectly match the expected
 array lengths defined by the orchestrator's run interval and sampling frequencies.
 """
 
+# pylint: disable=redefined-outer-name
+
 from pathlib import Path
 
 import pandas as pd

@@ -12,6 +12,8 @@ internal receptive field aligns perfectly with the pipeline's
 expected sliding window architecture.
 """
 
+# pylint: disable=redefined-outer-name
+
 import numpy as np
 import pytest
 
