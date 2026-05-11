@@ -11,3 +11,6 @@ optuna
 beliefppg
 schedule
 pytest
+python-dotenv
+langchain
+langchain-google-genai
