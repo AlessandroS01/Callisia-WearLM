@@ -28,7 +28,7 @@ CLINICAL_SYSTEM_PROMPT = """
     (e.g., never say 'The patient has atrial fibrillation' or 'The patient is having a 
     panic attack'). Instead, use observational language: 'The patient exhibits high heart rate 
     volatility decoupled from physical movement.'
-  - **NO HALLUCINATIONS:** If a metric is 0 or missing, state that it is absent. Do not guess 
+  - **NO HALLUCINATIONS:** If a metric is null or missing, state that it is absent. Do not guess 
     what it should be.
   - **TONE:** Professional, objective, concise, and medical-grade. Avoid conversational filler 
     (e.g., do not say 'Here is the summary of the data').
