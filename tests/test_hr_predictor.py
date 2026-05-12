@@ -17,20 +17,6 @@ expected sliding window architecture.
 import numpy as np
 import pytest
 
-from src.models.hr_predictor import HRPredictor
-
-
-@pytest.fixture
-def predictor(base_config):
-    """
-    Fixture to provide a reusable instance of the HRPredictor.
-
-    Dynamically loads the required sampling frequencies (e.g., 64Hz for BVP,
-    32Hz for ACC) directly from the centralized test configuration.
-    """
-    bvp_freq = base_config["inference"]["bvp_freq"]
-    acc_freq = base_config["inference"]["acc_freq"]
-    return HRPredictor(bvp_freq=bvp_freq, acc_freq=acc_freq)
 
 # ==========================================
 # TEST 1: Initialization

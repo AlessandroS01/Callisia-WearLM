@@ -10,13 +10,14 @@ clinical text.
 """
 import json
 
-from dotenv import load_dotenv
-from langchain_core.output_parsers import StrOutputParser
+from dotenv import load_dotenv, find_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langsmith import traceable
+from pydantic import BaseModel
 
 from src.prompts import CLINICAL_SYSTEM_PROMPT
+from src.schemas import ClinicalReportOutput
 
 
 class LLMInsightsPipeline:
@@ -43,18 +44,15 @@ class LLMInsightsPipeline:
                        aggregation and LLM interaction.
         """
         self.config = config
-        self.model = self._model_creation()
+        raw_model = self._model_creation()
+        self.model = raw_model.with_structured_output(ClinicalReportOutput)
 
-        self.prompt = ChatPromptTemplate.from_messages([
+        self.chat_template = ChatPromptTemplate.from_messages([
             ("system", CLINICAL_SYSTEM_PROMPT),
             ("user", "Here is the patient's 120-second telemetry payload:\n{clinical_data}")
         ])
 
-        self.chain = (
-            self.prompt
-            | self.model
-            | StrOutputParser()
-        )
+        self.chain = self.chat_template | self.model
 
     def _model_creation(self) -> ChatGoogleGenerativeAI:
         """
@@ -63,8 +61,7 @@ class LLMInsightsPipeline:
 
         :return: A configured instance of ChatGoogleGenerativeAI.
         """
-
-        load_dotenv()
+        load_dotenv(find_dotenv(raise_error_if_not_found=True), override=True)
 
         llm_param_list = self.config.get("llm", {})
         model_name = llm_param_list.get("model_name", "gemini-3.1-flash-lite")
@@ -78,7 +75,7 @@ class LLMInsightsPipeline:
         return model
 
     @traceable
-    def _pipeline(self, payload: dict) -> str:
+    def _pipeline(self, payload: dict) -> BaseModel:
         """
         Internal method to execute the LangChain pipeline with LangSmith tracing.
 
@@ -94,7 +91,7 @@ class LLMInsightsPipeline:
         return final_report
 
 
-    def run(self, payload: dict):
+    def run(self, payload: dict) -> ClinicalReportOutput:
         """
         Executes the LLM insights generation process.
 

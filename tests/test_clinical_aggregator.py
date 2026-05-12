@@ -7,8 +7,9 @@ protected helper methods and integration tests of the public pipeline.
 
 # pylint: disable=redefined-outer-name, protected-access
 
-import pytest
 import numpy as np
+import pytest
+
 
 # ==========================================
 # TEST 1: Cardiovascular Zones & Trends

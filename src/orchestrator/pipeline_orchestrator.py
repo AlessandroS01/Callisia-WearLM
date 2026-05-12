@@ -76,4 +76,7 @@ class PipelineOrchestrator:
         print(f"[{patient_id}] LLM payload: \n{clinical_payload}")
 
         # Step 2: LLM feed to interpret the data
-        self.llm_pipeline.run(payload=clinical_payload)
+        data_interpretation = self.llm_pipeline.run(payload=clinical_payload)
+
+        print(f"[{patient_id}] Data interpretation: \n"
+              f"{data_interpretation.model_dump_json(indent=2)}")
