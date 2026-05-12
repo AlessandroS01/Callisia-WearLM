@@ -66,13 +66,17 @@ class PipelineOrchestrator:
 
         patient_id = self.config["inference"]["patient_id"]
 
-        # Step 1: Run the inference pipeline to process raw sensor data and generate predictions.
+        # Step 1: Run the inference pipeline to process raw sensor data and generate predictions
         hr, _, _, acc = self.signal_pipeline.run(patient_id=patient_id)
 
+        # Step 2: Run the aggregation
         print(f"[{patient_id}] Aggregating sensor features...")
-        llm_payload = self.aggregator.aggregate(hr_prediction=hr, acc_array=acc)
+        clinical_payload = self.aggregator.aggregate(hr_prediction=hr, acc_array=acc)
 
-        print(f"[{patient_id}] LLM payload: \n{llm_payload}")
+        print(f"[{patient_id}] LLM payload: \n{clinical_payload}")
 
-        # Step 2: Run the aggregation and LLM feed to interpret the data.
-        self.llm_pipeline.run()
+        # Step 2: LLM feed to interpret the data
+        data_interpretation = self.llm_pipeline.run(payload=clinical_payload)
+
+        print(f"[{patient_id}] Data interpretation: \n"
+              f"{data_interpretation.model_dump_json(indent=2)}")

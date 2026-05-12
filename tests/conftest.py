@@ -19,6 +19,8 @@ import pandas as pd
 import pytest
 
 from src.aggregators import ClinicalAggregator
+from src.models.hr_predictor import HRPredictor
+from src.pipelines import LLMInsightsPipeline
 
 # This finds the absolute root of your project dynamically
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -40,7 +42,8 @@ def base_config():
         },
         "inference": {"bvp_freq": 64, "acc_freq": 32},
         "orchestrator": {"run_interval_schedule": 120},
-        "thresholds": {"resting": 0.05, "moving": 0.5}
+        "thresholds": {"resting": 0.05, "moving": 0.5},
+        "llm": {"model_name": "gemini-3.1-flash-lite", "temperature": 0.1}
     }
 
 
@@ -97,3 +100,37 @@ def aggregator(base_config):
     ClinicalAggregator for testing statistical methods.
     """
     return ClinicalAggregator(base_config)
+
+@pytest.fixture
+def predictor(base_config):
+    """
+    Fixture to provide a reusable instance of the HRPredictor.
+
+    Dynamically loads the required sampling frequencies (e.g., 64Hz for BVP,
+    32Hz for ACC) directly from the centralized test configuration.
+    """
+    bvp_freq = base_config["inference"]["bvp_freq"]
+    acc_freq = base_config["inference"]["acc_freq"]
+    return HRPredictor(bvp_freq=bvp_freq, acc_freq=acc_freq)
+
+@pytest.fixture
+def predicting_hr(
+        predictor,
+        real_acc_data,
+        real_bvp_data
+):
+    """
+    Fixture to provide a reusable and truthful instance of the HR prediction output.
+    """
+    return predictor.predict(
+        bvp_data= real_bvp_data,
+        acc_data= real_acc_data
+    )
+
+@pytest.fixture
+def llm_pipeline_generator(base_config) -> LLMInsightsPipeline:
+    """
+    Fixture to provide a reusable, pre-configured instance of the
+    LLMInsightsPipeline for testing statistical methods.
+    """
+    return LLMInsightsPipeline(base_config)
