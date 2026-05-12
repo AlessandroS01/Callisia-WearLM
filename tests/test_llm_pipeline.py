@@ -9,7 +9,6 @@ from src.schemas import ClinicalReportOutput
 
 @pytest.mark.integration
 def test_final_orchestrator(
-        base_config,
         aggregator,
         predicting_hr,
         real_acc_data,
@@ -27,7 +26,6 @@ def test_final_orchestrator(
     it is marked with `@pytest.mark.integration` and should generally be excluded
     from fast, local unit test runs to prevent unnecessary API latency and costs.
 
-    :param base_config: The foundational configuration dictionary.
     :param aggregator: An initialized instance of the ClinicalAggregator.
     :param predicting_hr: A tuple containing the predicted heart rate array and indices.
     :param real_acc_data: A 2D numpy array of physical accelerometer data.
