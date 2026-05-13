@@ -61,7 +61,7 @@ def real_bvp_data(base_config):
 
     interval_recording_samples = run_interval * bvp_freq
 
-    file_path = TEST_SAMPLES_DIR / "wrist_BVP.csv"
+    file_path = TEST_SAMPLES_DIR / "BVP.csv"
 
     if not file_path.exists():
         pytest.skip(f"Test data file not found at: {file_path}")
@@ -85,7 +85,7 @@ def real_acc_data(base_config):
 
     interval_recording_samples = run_interval * acc_freq
 
-    file_path = TEST_SAMPLES_DIR / "wrist_ACC.csv"
+    file_path = TEST_SAMPLES_DIR / "ACC.csv"
 
     if not file_path.exists():
         pytest.skip(f"Test data file not found at: {file_path}")
