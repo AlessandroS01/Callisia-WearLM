@@ -16,7 +16,7 @@ Typical usage example:
 """
 
 from src.aggregators import ClinicalAggregator
-from src.pipelines import SignalProcessingPipeline, LLMInsightsPipeline, ClinicalReportGenerator
+from src.pipelines import SignalProcessingPipeline, LLMInsightsPipeline, ClinicalReportGeneratorPipeline
 
 
 class PipelineOrchestrator:
@@ -50,7 +50,7 @@ class PipelineOrchestrator:
         # initialize pipelines
         self.signal_pipeline = SignalProcessingPipeline(config=self.config)
         self.llm_pipeline = LLMInsightsPipeline(config=self.config)
-        self.report_generator = ClinicalReportGenerator(config=self.config)
+        self.report_generator = ClinicalReportGeneratorPipeline(config=self.config)
 
         # initialize aggregator
         self.aggregator = ClinicalAggregator(config=self.config)
@@ -80,3 +80,10 @@ class PipelineOrchestrator:
 
         print(f"[{patient_id}] Data interpretation: \n"
               f"{data_interpretation.model_dump_json(indent=2)}")
+
+        # Step 3: Report generation
+        print(f"[{patient_id}] Generating report...")
+
+        output_path = self.report_generator.run(
+            clinical_report=data_interpretation
+        )

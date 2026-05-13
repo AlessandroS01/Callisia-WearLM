@@ -10,7 +10,7 @@ By keeping these pipelines decoupled, the system ensures that mathematical
 inference and natural language generation can scale, fail, and be tested
 independently.
 """
-from .clinical_report_generator import ClinicalReportGenerator
+from .clinical_report_generator_pipeline import ClinicalReportGeneratorPipeline
 from .llm_insights_pipeline import LLMInsightsPipeline
 from .signal_processing_pipeline import SignalProcessingPipeline
 
@@ -19,5 +19,5 @@ from .signal_processing_pipeline import SignalProcessingPipeline
 __all__ = [
     "SignalProcessingPipeline",
     "LLMInsightsPipeline",
-    "ClinicalReportGenerator"
+    "ClinicalReportGeneratorPipeline"
 ]

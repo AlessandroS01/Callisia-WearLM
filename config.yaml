@@ -12,6 +12,12 @@ inference:
   bvp_freq: 64
   acc_freq: 32
 
+llm:
+  # Configuration for the LLM
+  model_name: "gemini-3.1-flash-lite"
+  temperature: 0.1
+
+
 params:
   # model need at least 20 seconds of data to make a prediction
   receptive_field_model_seconds: 20
@@ -28,8 +34,3 @@ thresholds:
 orchestrator:
   # Configuration for the orchestrator
   run_interval_schedule: 120 # seconds
-
-llm:
-  # Configuration for the LLM
-  model_name: "gemini-3.1-flash-lite"
-  temperature: 0.1

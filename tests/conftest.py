@@ -20,7 +20,8 @@ import pytest
 
 from src.aggregators import ClinicalAggregator
 from src.models.hr_predictor import HRPredictor
-from src.pipelines import LLMInsightsPipeline
+from src.pipelines import LLMInsightsPipeline, ClinicalReportGeneratorPipeline
+from src.schemas import ClinicalReportOutput
 
 # This finds the absolute root of your project dynamically
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -134,3 +135,37 @@ def llm_pipeline_generator(base_config) -> LLMInsightsPipeline:
     LLMInsightsPipeline for testing statistical methods.
     """
     return LLMInsightsPipeline(base_config)
+
+@pytest.fixture
+def report_generator_pipeline(base_config) -> ClinicalReportGeneratorPipeline:
+    """
+    Fixture to provide a reusable, pre-configured instance of the
+    ClinicalReportGeneratorPipeline for testing statistical methods.
+    """
+    return ClinicalReportGeneratorPipeline(base_config)
+
+
+@pytest.fixture
+def mock_report() -> ClinicalReportOutput:
+    """
+    Mocks the creation of a ClinicalReportOutput instance from a validated json.
+    :return:
+    """
+    raw_json_string = """{
+      "internal_reasoning": "The patient exhibits a mean heart rate of 115.8 bpm with a high frequency of beats over 100 bpm (45 windows). Movement analysis shows 55 resting windows and only 2 light movement windows, indicating a state of physical inactivity. The correlation between HR and movement is low (0.349), suggesting that the elevated heart rate is not primarily driven by physical exertion. The HR trend is falling, but remains in a tachycardic range relative to resting state.",
+      "primary_observation": "The patient exhibits sustained elevated heart rate despite a lack of physical activity, with a low correlation between cardiovascular output and movement.",
+      "cardiovascular_state": "The heart rate is consistently elevated, with a mean of 115.8 bpm and a median of 119.4 bpm. The majority of the 120-second window (45/51 windows) shows heart rates exceeding 100 bpm, though the trend is currently falling.",
+      "autonomic_tone": "The average beat-to-beat jump of 1.974 indicates moderate volatility, suggesting a lack of autonomic rigidity but a persistent sympathetic influence.",
+      "movement_context": "The patient is primarily in a resting state, with 55 resting windows and no active movement detected. The elevated heart rate is decoupled from physical exertion.",
+      "anomalies_detected": [
+        "Sustained tachycardia during resting state",
+        "Low correlation between heart rate and physical activity"
+      ],
+      "requires_attention": true,
+      "recommended_system_action": "Monitor for sustained tachycardia and verify patient's subjective comfort level; ensure sensor is properly calibrated to rule out motion artifact.",
+      "technical_notes": "Data alignment is consistent with the 20-second model receptive field; no sensor failure detected."
+    }"""
+
+    report_instance = ClinicalReportOutput.model_validate_json(raw_json_string)
+
+    return report_instance
