@@ -25,6 +25,4 @@ def test_creating_report(
 
     # Verify that the report was created in the output directory
     expected_report_path = f"{report_generator_pipeline.output_dir}/report_12345.md"
-    assert (
-        os.path.exists(expected_report_path), f"Report was not created at {expected_report_path}"
-    )
+    assert os.path.exists(expected_report_path)
