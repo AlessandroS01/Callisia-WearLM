@@ -36,6 +36,11 @@ class ClinicalReportOutput(BaseModel):
     )
 
     # Flags
+    ews_hr_score: int = Field(
+        description="The modified Early Warning Score (EWS) based strictly on the Heart Rate. "
+                    "Use standard NEWS2 HR scoring: 0 (51-90 bpm), 1 (41-50 or 91-110 bpm), "
+                    "2 (111-130 bpm), 3 (<=40 or >=131 bpm). Base this on the mean or median HR."
+    )
     anomalies_detected: List[str] = Field(
         description="List of specific anomalies like sudden jolts or extreme variance. "
                     "Empty list if none."
