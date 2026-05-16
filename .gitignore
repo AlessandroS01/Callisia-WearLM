@@ -44,3 +44,5 @@
 /models/baselines/block_1/trial_3/best_model.pth
 /.env
 /data/raw/callisia/
+/notebooks/callisia/processed/
+/data/processed/callisia/
