@@ -27,9 +27,20 @@ params:
 
 thresholds:
   # Thresholds for classifying activity levels based on the hardware for ACC.
-  # values can be adjusted
-  resting: 0.05
-  moving: 0.5
+  # Values can be adjusted based on multi-metric bounds.
+
+  resting:
+    # Must be below all these values to be considered 'True Rest'
+    std_magnitude: 15.0
+    range_magnitude: 100.0
+    mean_jerk: 5.0
+
+  moving:
+    # Must be below these values to be considered 'Fidgeting/Light Motion'
+    # Anything above is considered 'Active/Walking'
+    std_magnitude: 100.0
+    range_magnitude: 1200.0
+    mean_jerk: 30.0
 
 orchestrator:
   # Configuration for the orchestrator

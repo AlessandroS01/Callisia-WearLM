@@ -43,7 +43,18 @@ def base_config():
         },
         "inference": {"bvp_freq": 64, "acc_freq": 32},
         "orchestrator": {"run_interval_schedule": 120},
-        "thresholds": {"resting": 0.05, "moving": 0.5},
+        "thresholds": {
+            "resting": {
+                "std_magnitude": 15.0,
+                "range_magnitude": 100.0,
+                "mean_jerk": 5.0
+            },
+            "moving": {
+                "std_magnitude": 100.0,
+                "range_magnitude": 1200.0,
+                "mean_jerk": 30.0
+            }
+        },
         "llm": {"model_name": "gemini-3.1-flash-lite", "temperature": 0.1}
     }
 
@@ -157,6 +168,7 @@ def mock_report() -> ClinicalReportOutput:
       "cardiovascular_state": "The heart rate is consistently elevated, with a mean of 115.8 bpm and a median of 119.4 bpm. The majority of the 120-second window (45/51 windows) shows heart rates exceeding 100 bpm, though the trend is currently falling.",
       "autonomic_tone": "The average beat-to-beat jump of 1.974 indicates moderate volatility, suggesting a lack of autonomic rigidity but a persistent sympathetic influence.",
       "movement_context": "The patient is primarily in a resting state, with 55 resting windows and no active movement detected. The elevated heart rate is decoupled from physical exertion.",
+      "ews_hr_score": 2,
       "anomalies_detected": [
         "Sustained tachycardia during resting state",
         "Low correlation between heart rate and physical activity"

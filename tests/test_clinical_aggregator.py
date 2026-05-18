@@ -73,17 +73,33 @@ def test_movement_stats_categorizes_zones(aggregator):
     light movement, and active states based on configured thresholds.
     """
     # --- 1. ARRANGE ---
-    # Create precise variance scores: 2 resting (<0.05), 2 light (0.05-0.5), 2 active (>0.5)
-    variance_data = np.array([0.01, 0.04, 0.1, 0.4, 0.6, 1.2])
+    # Assuming standard defaults:
+    # Resting: std < 15, range < 100, jerk < 5
+    # Active: std > 100, range > 1200, jerk > 30
+
+    acc_features = {
+        # Windows: [Rest 1, Rest 2, Light 1, Light 2, Active 1 (High Std), Active 2 (High Range)]
+        "std": np.array([10.0, 5.0, 30.0, 80.0, 105.0, 50.0]),
+        "range": np.array([50.0, 80.0, 200.0, 800.0, 500.0, 1300.0]),
+        "jerk": np.array([2.0, 4.0, 10.0, 20.0, 15.0, 10.0])
+    }
 
     # --- 2. ACT ---
-    result = aggregator._movement_statistics(variance_data)
+    result = aggregator._movement_statistics(acc_features)
     dist = result["distribution"]
 
     # --- 3. ASSERT ---
+    # Windows 0 and 1: ALL metrics are strictly below the resting thresholds
     assert dist["resting_windows_count"] == 2
+
+    # Windows 2 and 3: Metrics are above resting, but below active
     assert dist["light_movement_windows_count"] == 2
+
+    # Window 4 (std > 100) and Window 5 (range > 1200) trigger the active OR-gate
     assert dist["active_movement_windows_count"] == 2
+
+    # Mean range is ~488. Max range is 1300.
+    # 1300 is not > (488 * 5), so no sudden jolt should be flagged.
     assert result["sudden_jolt_detected"] is False
 
 
@@ -95,14 +111,27 @@ def test_movement_stats_detects_sudden_jolt(aggregator, base_config):
     # --- 1. ARRANGE ---
     duration = base_config["orchestrator"]["run_interval_schedule"]
     step = base_config["params"]["step_size"]
-    total_hr_windows = int(duration / step)
+    total_windows = int(duration / step)
 
-    # Fill all windows except the last one with resting data, then add a massive spike
-    variance_data = np.full(total_hr_windows - 1, 0.01)
-    variance_data = np.append(variance_data, 5.0)
+    # Fill all windows except the last one with baseline resting data
+    std_data = np.full(total_windows - 1, 10.0)
+    range_data = np.full(total_windows - 1, 50.0)
+    jerk_data = np.full(total_windows - 1, 2.0)
+
+    # Append a massive physical impact (spike) to the last window
+    # The range needs to be > 1000.0 and > 5x the mean to trigger the jolt
+    std_data = np.append(std_data, 120.0)  # Standard deviation bumps up briefly
+    range_data = np.append(range_data, 1500.0)  # Massive impact/swing
+    jerk_data = np.append(jerk_data, 40.0)  # High directional change
+
+    acc_features = {
+        "std": std_data,
+        "range": range_data,
+        "jerk": jerk_data
+    }
 
     # --- 2. ACT ---
-    result = aggregator._movement_statistics(variance_data)
+    result = aggregator._movement_statistics(acc_features)
 
     # --- 3. ASSERT ---
     assert result["sudden_jolt_detected"] is True

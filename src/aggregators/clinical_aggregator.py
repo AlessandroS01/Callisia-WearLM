@@ -53,8 +53,20 @@ class ClinicalAggregator:
         self.total_duration = config.get("orchestrator", {}).get("run_interval_schedule", 120)
 
         # initialize thresholds
-        self.resting_threshold = config.get('thresholds', {}).get('resting', 0.05)
-        self.moving_threshold = config.get('thresholds', {}).get('moving', 0.5)
+        rest_threshold = config.get('thresholds', {}).get('resting', {})
+        move_threshold = config.get('thresholds', {}).get('moving', {})
+
+        self.resting_thresholds = {
+            'std_magnitude': rest_threshold.get('std_magnitude', 15.0),
+            'range_magnitude': rest_threshold.get('range_magnitude', 100.0),
+            'mean_jerk': rest_threshold.get('mean_jerk', 5.0)
+        }
+
+        self.moving_thresholds = {
+            'std_magnitude': move_threshold.get('std_magnitude', 100.0),
+            'range_magnitude': move_threshold.get('range_magnitude', 1200.0),
+            'mean_jerk': move_threshold.get('mean_jerk', 30.0)
+        }
 
         # initialize receptive field of the model
         self.receptive_field_model_seconds = (
@@ -81,24 +93,41 @@ class ClinicalAggregator:
         """
         return np.sqrt(np.sum(acc_array**2, axis=1))
 
-    def _windowed_acc_variance(self, acc_array: np.ndarray) -> np.ndarray:
+    def _extract_windowed_acc_features(self, acc_array: np.ndarray) -> dict:
         """
-        Calculates the variance of the accelerometer magnitude over discrete windows.
+        Extracts multidimensional kinetic features from the accelerometer
+        magnitude over discrete rolling windows.
 
-        :param acc_array: A 1D numpy array of accelerometer magnitudes.
-        :return: A 1D numpy array of variances, one for each window.
+        Instead of relying on a single variance metric, this method calculates
+        three distinct features per window to create a robust motion profile:
+        1. 'std' (Standard Deviation): Captures continuous, rhythmic motion (e.g., walking).
+        2. 'range' (Peak-to-Peak): Captures sudden impacts or massive arm swings.
+        3. 'jerk' (Mean Absolute Difference): Captures high-frequency jitter or fidgeting.
+
+        These isolated features are required by the downstream pipeline to
+        accurately categorize physical activity and flag motion artifacts that
+        corrupt the optical PPG signal.
+
+        :param acc_array: A 1D numpy array of synchronized accelerometer magnitudes.
+        :return: A dictionary containing three 1D numpy arrays ('std', 'range', 'jerk'),
+                 where each element represents the calculated feature for a single time window.
         """
-        variances = []
+        stds, ranges, jerks = [], [], []
 
         for i in range(0, len(acc_array) - self.window_size + 1, self.step_size):
             # Grab the full 8-second context block
             current_window = acc_array[i: i + self.window_size]
 
             # Calculate the variance (movement score) for those entire 8 seconds
-            score = np.var(current_window)
-            variances.append(score)
+            stds.append(np.std(current_window))
+            ranges.append(np.ptp(current_window))  # Peak-to-peak (Max - Min)
+            jerks.append(np.mean(np.abs(np.diff(current_window))))
 
-        return np.array(variances)
+        return {
+            "std": np.array(stds),
+            "range": np.array(ranges),
+            "jerk": np.array(jerks)
+        }
 
     def _cardiovascular_statistics(self, hr_predictions: np.ndarray) -> dict:
         """
@@ -169,42 +198,62 @@ class ClinicalAggregator:
             }
         }
 
-    def _movement_statistics(self, acc_variance_array: np.ndarray) -> dict:
+    def _movement_statistics(self, acc_features: dict) -> dict:
         """
-        Calculates physical activity and anomaly statistics based on windowed
-        accelerometer variances.
+        Calculates physical activity classifications and detects motion anomalies
+        using multi-dimensional accelerometer features.
 
-        This method quantifies the patient's movement distribution (resting,
-        light movement, active) and identifies sudden variance spikes that
-        could indicate anomalies such as a fall, sudden exertion, or sensor drop.
+        This method evaluates each time window against three distinct kinetic metrics:
+        sustained noise (standard deviation), peak impacts (range), and high-frequency
+        jitter (jerk). It categorizes the patient's overall movement distribution
+        (resting, light movement, active) by applying interlocking thresholds.
+        Additionally, it identifies acute anomalies—such as a fall, sudden exertion,
+        or a dropped sensor—by monitoring for sudden, disproportionate spikes in the
+        range metric.
 
-        :param acc_variance_array: A 1D numpy array of calculated accelerometer
-                                           variances per time window.
-        :return: A dictionary containing the mean/peak variance, anomaly flags,
-                         and the categorical distribution of movement.
+        :param acc_features: A dictionary containing 1D numpy arrays ('std', 'range',
+                             and 'jerk'), representing the extracted accelerometer
+                             features calculated per time window.
+        :return: A dictionary containing the mean overall noise level, anomaly
+                 detection flags (sudden_jolt_detected), and the categorical
+                 distribution of movement (window counts for resting, light
+                 movement, and active states).
         """
-        mean_var = float(np.mean(acc_variance_array))
-        max_var = float(np.max(acc_variance_array))
+        std_arr = acc_features["std"]
+        range_arr = acc_features["range"]
+        jerk_arr = acc_features["jerk"]
 
-        resting_count = int(np.sum(acc_variance_array < self.resting_threshold))
-        light_movement_count = int(
-            np.sum(
-                (acc_variance_array >= self.resting_threshold)
-                &
-                (acc_variance_array <= self.moving_threshold))
+        total_windows = len(std_arr)
+
+        # ACTIVE: If ANY metric crosses the high threshold
+        active_mask = (
+                (std_arr > self.moving_thresholds['std_magnitude']) |
+                (range_arr > self.moving_thresholds['range_magnitude']) |
+                (jerk_arr > self.moving_thresholds['mean_jerk']))
+        active_count = int(np.sum(active_mask))
+
+        # RESTING: If ALL metrics are below the strict thresholds
+        resting_mask = (
+                (std_arr < self.resting_thresholds['std_magnitude']) |
+                (range_arr < self.resting_thresholds['range_magnitude']) |
+                (jerk_arr < self.resting_thresholds['mean_jerk'])
         )
-        moving_count = int(np.sum(acc_variance_array > self.moving_threshold))
+        resting_count = int(np.sum(resting_mask))
+
+        # MOVING: Everything stuck in the middle (Fidgeting/Postural changes)
+        moving_count = total_windows - (active_count + resting_count)
 
         # detect sudden extreme variance spike
-        sudden_jolt_detected = bool(max_var > (mean_var * 10) and max_var > self.moving_threshold)
+        mean_range = float(np.mean(range_arr))
+        max_range = float(np.max(range_arr))
+        sudden_jolt_detected = bool(max_range > (mean_range * 5) and max_range > 1000.0)
 
         return {
-            "mean_variance": round(mean_var, 3),
-            "peak_variance": round(max_var, 3),
+            "mean_noise_level": round(float(np.mean(std_arr)), 3),
             "sudden_jolt_detected": sudden_jolt_detected,
             "distribution": {
                 "resting_windows_count": resting_count,
-                "light_movement_windows_count": light_movement_count,
+                "light_movement_windows_count": moving_count,
                 "active_movement_windows_count": moving_count
             }
         }
@@ -212,22 +261,23 @@ class ClinicalAggregator:
     def _signal_correlation(
             self,
             hr_predictions: np.ndarray,
-            acc_variance_array: np.ndarray
+            acc_std: np.ndarray,
             ) -> dict:
         """
         Calculates the Pearson correlation coefficient between heart rate
-        predictions and accelerometer variance to provide clinical context.
+        predictions and accelerometer standard deviation to provide clinical context.
 
         Determines if an elevated heart rate is justified by exercise,
         or if it indicates an anomaly such as psychological stress, fever,
         or an arrhythmia (high HR with zero movement).
 
         :param hr_predictions: A 1D numpy array of predicted heart rates (BPM).
-        :param acc_variance_array: A 1D numpy array of calculated accelerometer
-                                           variances representing physical movement.
+        :param acc_std: A 1D numpy array of calculated accelerometer
+                                           standard deviations representing physical movement.
         :return: A dictionary containing the calculated correlation coefficient
                          and a human-readable string explaining the clinical context.
         """
+
         # Mathematical offset according to neural network warm-up
         # offset = (receptive field - window size sec) / step size sec
         total_extra_windows = (
@@ -236,10 +286,10 @@ class ClinicalAggregator:
 
         # Strip the first 3 and last 3 windows off the ACC array
         # so it perfectly aligns with the center of the HR predictions
-        if len(acc_variance_array) > 2 * offset:
-            acc_sync = acc_variance_array[offset: -offset]
+        if len(acc_std) > 2 * offset:
+            acc_sync = acc_std[offset: -offset]
         else:
-            acc_sync = acc_variance_array
+            acc_sync = acc_std
 
         hr_sync = hr_predictions
 
@@ -316,16 +366,17 @@ class ClinicalAggregator:
             acc_magnitude = self._upsample_signal(acc_magnitude, factor)
 
         # variance for each window
-        acc_variance = self._windowed_acc_variance(acc_magnitude)
+        acc_features = self._extract_windowed_acc_features(acc_magnitude)
 
         print(f"Length of HR predictions: {len(hr_prediction)}")
-        print(f"Length of ACC windows variances: {len(acc_variance)}")
+        print(f"Total ACC features: {len(acc_features)} "
+              f"with {len(acc_features['std'])} windows each")
 
         # generation individual feature dictionaries
         cardiovascular_summary_stats = self._cardiovascular_statistics(hr_prediction)
-        movement_summary_stats = self._movement_statistics(acc_variance)
+        movement_summary_stats = self._movement_statistics(acc_features)
         volatility_stats = self._hr_volatility(hr_prediction)
-        correlation_stats = self._signal_correlation(hr_prediction, acc_variance)
+        correlation_stats = self._signal_correlation(hr_prediction, acc_features['std'])
 
         payload = {
             "system_telemetry": {
