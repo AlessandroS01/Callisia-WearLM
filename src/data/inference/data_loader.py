@@ -37,15 +37,17 @@ class DataLoader:
     :vartype base_path: str
     """
 
-    def __init__(self, base_path):
+    def __init__(self, base_path, valid_leaf_columns):
         """
         Initializes the DataLoader with the dataset's root directory.
 
         :param base_path: The root directory of the dataset (e.g., passed from config.yaml).
+        :param valid_leaf_columns: A list of expected column names in the LEAF device CSV files.
         """
         self.base_path = base_path
+        self.valid_leaf_data = valid_leaf_columns
 
-    def load_patient_signals(self, patient_id: str) -> tuple:
+    def load_patient_signals(self, patient_id: str) -> pd.DataFrame:
         """
         Loads raw BVP and ACC data for a specific patient.
 
@@ -53,22 +55,21 @@ class DataLoader:
         the sensor data from the 'wrist' subdirectory.
 
         :param patient_id: The specific patient identifier (e.g., 'S1').
-        :return: A tuple containing two numpy arrays (bvp_array, acc_array).
-        :raises FileNotFoundError: If either the BVP or ACC CSV files are missing
+        :return: A dataframe containing the signal data
+        :raises FileNotFoundError: If signal data file is missing
                                    for the requested patient in the expected directory.
         """
-        patient_dir = os.path.join(self.base_path, patient_id)
+        patient_dir = os.path.join(self.base_path, patient_id, "Leaf")
 
-        bvp_path = os.path.join(patient_dir, "wrist/wrist_BVP.csv")
-        acc_path = os.path.join(patient_dir, "wrist/wrist_ACC.csv")
+        for subdir in os.listdir(patient_dir):
+            if "ppg_acc" in subdir and subdir.endswith(".csv"):
+                signal_data = pd.read_csv(
+                    os.path.join(patient_dir, subdir),
+                    usecols=self.valid_leaf_data
+                )
 
-        if not os.path.exists(bvp_path) or not os.path.exists(acc_path):
-            raise FileNotFoundError(
-                f"Missing sensor data for patient {patient_id} in {patient_dir}"
-            )
+                return signal_data
 
-        # Load data and immediately convert to numpy arrays for the model
-        bvp_arr = np.array(pd.read_csv(bvp_path))
-        acc_arr = np.array(pd.read_csv(acc_path))
-
-        return bvp_arr, acc_arr
+        raise FileNotFoundError(
+            f"No valid signal data file found for patient {patient_id} in {patient_dir}"
+        )

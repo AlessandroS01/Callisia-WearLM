@@ -3,14 +3,15 @@
 # ==========================================
 
 data:
-  base_path: "data/processed/dalia"
+  base_path: "data/raw/callisia"
   # Uncomment to use the wesad dataset instead
   # base_path: "data/processed/wesad"
 
+valid_leaf_columns: ["timestamp_ms", "green", "acc_x", "acc_y", "acc_z"]
+
 inference:
-  patient_id: "S1"
-  bvp_freq: 64
-  acc_freq: 32
+  patient_id: "P01"
+  target_rate_freq: 40
 
 llm:
   # Configuration for the LLM
