@@ -1,7 +1,7 @@
 """
 Integration test for the ClinicalReportGeneratorPipeline module.
 """
-import datetime
+from datetime import datetime
 import os
 
 import pytest
