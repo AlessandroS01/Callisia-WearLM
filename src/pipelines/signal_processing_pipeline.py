@@ -162,12 +162,12 @@ class SignalProcessingPipeline:
         signal_data = self.data_loader.load_patient_signals(patient_id)
 
         print(f"[{patient_id}] Cleaning signals...")
-        clean_data = self._clean_data(signal_data)
+        cleaned_data = self._clean_data(signal_data)
 
         # Predict Heart Rate
         print(f"[{patient_id}] Predicting heart rate...")
-        bvp = np.array(clean_data[['green']])
-        acc = np.array(clean_data[['acc_x', 'acc_y', 'acc_z']])
+        bvp = np.array(cleaned_data[['green']])
+        acc = np.array(cleaned_data[['acc_x', 'acc_y', 'acc_z']])
 
         hr, idxs = self.predictor.predict(bvp_data=bvp, acc_data=acc)
 
