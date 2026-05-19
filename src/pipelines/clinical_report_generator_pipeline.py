@@ -70,7 +70,18 @@ class ClinicalReportGeneratorPipeline:
         else:
             status_banner = "### ✅ STATUS: NORMAL BASELINE"
 
-        # 2. Format Anomalies as HTML List for tighter spacing
+        # 2. Format EWS HR Score with color coding
+        ews_score = clinical_report.ews_hr_score
+        if ews_score == 0:
+            ews_label = "✅ **0 (Normal)** - HR in safe zone"
+        elif ews_score == 1:
+            ews_label = "⚠️ **1 (Borderline)** - HR slightly elevated/low"
+        elif ews_score == 2:
+            ews_label = "🟠 **2 (Elevated)** - HR moderately abnormal"
+        else:  # ews_score == 3
+            ews_label = "🛑 **3 (Critical)** - HR critically abnormal"
+
+        # 3. Format Anomalies as HTML List for tighter spacing
         if clinical_report.anomalies_detected:
             anomalies_html = "\n".join(
                 f"<li><b>{a}</b></li>" for a in clinical_report.anomalies_detected
@@ -78,10 +89,10 @@ class ClinicalReportGeneratorPipeline:
         else:
             anomalies_html = "<li><i>No anomalies detected.</i></li>"
 
-        # 3. Generate timestamp
+        # 4. Generate timestamp
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # 4. Construct the HTML-Enhanced Markdown document
+        # 5. Construct the HTML-Enhanced Markdown document
         # We use a Markdown Table to force the text into constrained columns
         md_content = textwrap.dedent(f"""\
 # 📊 Clinical Telemetry Report
@@ -98,6 +109,7 @@ class ClinicalReportGeneratorPipeline:
 ### 📈 System Metrics
 | Category | Clinical Analysis |
 | :--- | :--- |
+| **🚨 EWS HR Score** | {ews_label} |
 | **❤️ Cardiovascular** | {clinical_report.cardiovascular_state} |
 | **🧠 Autonomic Tone** | {clinical_report.autonomic_tone} |
 | **🏃 Movement Context** | {clinical_report.movement_context} |

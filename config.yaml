@@ -2,10 +2,7 @@
 # Pipeline Configuration: config.yaml
 # ==========================================
 
-data:
-  base_path: "data/raw/callisia"
-  # Uncomment to use the wesad dataset instead
-  # base_path: "data/processed/wesad"
+base_path: "data/raw/callisia"
 
 valid_leaf_columns: ["timestamp_ms", "green", "acc_x", "acc_y", "acc_z"]
 
