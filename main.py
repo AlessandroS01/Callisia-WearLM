@@ -73,7 +73,7 @@ def main():
     job(config=config)
 
     # Schedule the recurring job
-    schedule.every(interval_seconds).seconds.do(job)
+    schedule.every(interval_seconds).seconds.do(job, config=config)
 
     # Keep the script running forever
     try:

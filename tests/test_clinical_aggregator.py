@@ -17,52 +17,64 @@ import pytest
 def test_cardio_stats_calculates_zones_correctly(aggregator):
     """
     Verifies that heart rate predictions are accurately binned into
-    clinical zones (bradycardia, normal, tachycardia) based on standard
-    medical thresholds (<60, 60-100, >100).
+    clinical zones (bradycardia, normal, tachycardia) after passing
+    through the artifact-rejection median filter.
     """
     # --- 1. ARRANGE ---
-    # Create a precise array: 2 under 60, 3 normal, 2 over 100
-    hr_data = np.array([50.0, 55.0, 75.0, 80.0, 95.0, 110.0, 120.0])
+    # Create sustained "plateaus" so the kernel_size=7 median filter
+    # recognizes them as real physiological states, not ML artifacts.
+    brady_plateau = [50.0] * 7  # 7 consecutive bradycardia readings
+    normal_plateau = [80.0] * 10  # 10 consecutive normal readings
+    tachy_plateau = [120.0] * 7  # 7 consecutive tachycardia readings
+
+    hr_data = np.array(brady_plateau + normal_plateau + tachy_plateau)
 
     # --- 2. ACT ---
     result = aggregator._cardiovascular_statistics(hr_data)
     zones = result["beats_distribution"]
 
     # --- 3. ASSERT ---
-    assert zones["under_60_bpm"] == 2
-    assert zones["between_60_and_100_bpm"] == 3
-    assert zones["over_100_bpm"] == 2
+    # The counts should perfectly match the lengths of our plateaus
+    assert zones["under_60_bpm"] == 7
+    assert zones["between_60_and_100_bpm"] == 10
+    assert zones["over_100_bpm"] == 7
 
 
+# Updated deltas to test the new per-minute thresholds: >15, >5, <-15, <-5
+# Assuming the test run duration is exactly 60 seconds (1 minute)
 @pytest.mark.parametrize("start_hr, end_hr, expected_trend", [
-    (60, 120, "rising rapidly"),  # Slope > 0.5
-    (60, 75, "rising slightly"),  # 0.1 < Slope <= 0.5
-    (120, 60, "falling rapidly"),  # Slope < -0.5
-    (75, 60, "falling slightly"),  # -0.5 <= Slope < -0.1
-    (75, 75, "stable"),  # Slope between -0.1 and 0.1
+    (60, 100, "Rising rapidly"),   # +40 BPM over 2 mins (Slope ~ 20.0)
+    (60, 80, "Rising slightly"),   # +20 BPM over 2 mins (Slope ~ 10.0)
+    (100, 60, "Falling rapidly"),  # -40 BPM over 2 mins (Slope ~ -20.0)
+    (80, 60, "Falling slightly"),  # -20 BPM over 2 mins (Slope ~ -10.0)
+    (75, 75, "Stable"),            # 0 BPM change (Slope 0.0)
 ])
 def test_cardio_stats_evaluates_all_trends(
         aggregator, base_config, start_hr, end_hr, expected_trend
 ):
     """
     Tests all linear regression branches to ensure the calculated slope
-    correctly translates to the appropriate human-readable trend string.
+    (scaled to BPM per minute) correctly translates to the appropriate
+    human-readable trend string for the LLM.
     """
     # --- 1. ARRANGE ---
-    # Dynamically calculate window sizes
     duration = base_config["orchestrator"]["run_interval_schedule"]
     step = base_config["params"]["step_size"]
     total_hr_windows = int(duration / step)
 
-    # Create an array that perfectly matches the expected number of windows
+    # np.linspace creates a perfectly smooth physiological trend
     hr_data = np.linspace(start_hr, end_hr, total_hr_windows)
 
     # --- 2. ACT ---
     result = aggregator._cardiovascular_statistics(hr_data)
 
     # --- 3. ASSERT ---
-    assert result["trend"] == expected_trend
+    actual_trend = result["trajectory_analysis"]["semantic_trend_description"]
 
+    assert actual_trend == expected_trend, (
+        f"Expected '{expected_trend}', but got '{actual_trend}'. "
+        f"Check the linregress math if this fails."
+    )
 
 # ==========================================
 # TEST 2: Movement Statistics & Anomalies
@@ -143,7 +155,7 @@ def test_movement_stats_detects_sudden_jolt(aggregator, base_config):
 def test_signal_correlation_high(aggregator):
     """
     Simulates physical exertion where heart rate rises synchronously
-    with movement, ensuring a positive clinical context is generated.
+    with movement, ensuring a high correlation context is generated.
     """
     # --- 1. ARRANGE ---
     hr = np.linspace(60, 120, 10)    # HR goes up
@@ -153,39 +165,42 @@ def test_signal_correlation_high(aggregator):
     result = aggregator._signal_correlation(hr, acc)
 
     # --- 3. ASSERT ---
-    assert "strongly driven by physical activity" in result["clinical_context"]
+    semantic_string = result["global_movement_correlation"]["semantic_relationship"]
+    assert "High" in semantic_string, f"Expected 'High', got {semantic_string}"
 
 
 def test_signal_correlation_low(aggregator):
     """
     Simulates physiological stress (e.g., anxiety or fever) where heart rate
-    is highly elevated but the patient is perfectly still.
+    is highly elevated but the patient is perfectly still. Also tests the NaN fallback.
     """
     # --- 1. ARRANGE ---
     hr = np.linspace(60, 120, 10)    # HR goes up
-    acc = np.linspace(1.0, 0.1, 10)  # Movement goes down
+    acc = np.array([0.1] * 10)       # Movement is perfectly flat (variance = 0)
 
     # --- 2. ACT ---
     result = aggregator._signal_correlation(hr, acc)
 
     # --- 3. ASSERT ---
-    assert "disconnected from physical movement" in result["clinical_context"]
+    semantic_string = result["global_movement_correlation"]["semantic_relationship"]
+    assert "Low" in semantic_string, f"Expected 'Low', got {semantic_string}"
 
 
 def test_signal_correlation_moderate(aggregator):
     """
-    Tests the default fallback correlation branch (between 0.2 and 0.6) for
+    Tests the moderate correlation branch (Pearson between 0.3 and 0.6) for
     inconsistent physiological signals.
     """
     # --- 1. ARRANGE ---
-    hr = np.array([60, 65, 70, 75, 80])
-    acc = np.array([0.1, 0.5, 0.2, 0.8, 0.3])
+    hr = np.array([60, 70, 80, 90, 100])
+    acc = np.array([0.1, 0.8, 0.2, 0.9, 0.7])
 
     # --- 2. ACT ---
     result = aggregator._signal_correlation(hr, acc)
 
     # --- 3. ASSERT ---
-    assert "Moderate correlation" in result["clinical_context"]
+    semantic_string = result["global_movement_correlation"]["semantic_relationship"]
+    assert "Moderate" in semantic_string, f"Expected 'Moderate', got {semantic_string}"
 
 
 # ==========================================
@@ -232,4 +247,4 @@ def test_aggregate_upsamples_acc_when_slower(base_config, aggregator, real_acc_d
     # --- 3. ASSERT ---
     assert isinstance(result, dict)
     assert "cardiovascular_analysis" in result
-    assert result["cardiovascular_analysis"]["standard_statistics"]["mean_hr"] == 75.0
+    assert result["cardiovascular_analysis"]["physiological_statistics"]["mean_hr"] == 75.0

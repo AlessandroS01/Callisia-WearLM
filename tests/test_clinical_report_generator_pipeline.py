@@ -1,11 +1,13 @@
 """
 Integration test for the ClinicalReportGeneratorPipeline module.
 """
+import datetime
 import os
 
 import pytest
 
 from src.pipelines import ClinicalReportGeneratorPipeline
+
 
 @pytest.mark.integration
 def test_creating_report(
@@ -23,6 +25,21 @@ def test_creating_report(
     # Generate the report using the pipeline
     report_generator_pipeline.run(mock_report)
 
-    # Verify that the report was created in the output directory
-    expected_report_path = f"{report_generator_pipeline.output_dir}/report_12345.md"
-    assert os.path.exists(expected_report_path)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
+    # 3. Get a list of all files currently in the output directory
+    output_dir = report_generator_pipeline.output_dir
+    generated_files = os.listdir(output_dir)
+
+    # 4. Check if ANY file in that folder matches our required pattern
+    report_was_created = any(
+        file_name.startswith("report_") and today_str in file_name
+        for file_name in generated_files
+    )
+
+    # 5. Assert with a helpful error message if it fails
+    assert report_was_created, (
+        f"Failed to find a report for today. "
+        f"Looked for 'report_*{today_str}*' in {output_dir}. "
+        f"Files found: {generated_files}"
+    )

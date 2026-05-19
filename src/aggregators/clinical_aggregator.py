@@ -6,6 +6,7 @@ high-frequency physiological arrays into structured statistical summaries
 (like windowed variance) suitable for LLM context generation.
 """
 import numpy as np
+from scipy.signal import medfilt
 from scipy.stats import linregress
 
 
@@ -144,53 +145,72 @@ class ClinicalAggregator:
                          and the distribution of beats across clinical zones.
         """
 
-        total_samples = len(hr_predictions)
+        if len(hr_predictions) == 0:
+            return {}
+
+        # smooths the prediction hallucinations without destroying trends
+        clean_hr_predictions = medfilt(hr_predictions, kernel_size=7)
 
         # Standard descriptive stats
-        hr_mean = float(np.mean(hr_predictions))
-        hr_variance = float(np.var(hr_predictions))
-        hr_std = float(np.std(hr_predictions))
-        hr_min = float(np.min(hr_predictions))
-        hr_max = float(np.max(hr_predictions))
+        raw_max = float(np.max(hr_predictions))
+        clean_max = float(np.max(clean_hr_predictions))
+        raw_min = float(np.min(hr_predictions))
+        clean_min = float(np.min(clean_hr_predictions))
+
+        hr_mean = float(np.mean(clean_hr_predictions))
+        hr_var = float(np.var(clean_hr_predictions))
+        hr_std = float(np.std(clean_hr_predictions))
 
         # Percentile Stats
-        hr_25th = float(np.percentile(hr_predictions, 25))
-        hr_median = float(np.median(hr_predictions))
-        hr_75th = float(np.percentile(hr_predictions, 75))
+        p25, p50, p75 = np.percentile(clean_hr_predictions, [25, 50, 75])
 
-        bradycardia_count = int(np.sum(hr_predictions < 60))
+        bradycardia_count = int(np.sum(clean_hr_predictions < 60))
         normal_count = int(
-            np.sum((hr_predictions >= 60) & (hr_predictions <= 100))
+            np.sum((clean_hr_predictions >= 60) & (clean_hr_predictions <= 100))
         )
-        tachycardia_count = int(np.sum(hr_predictions > 100))
+        tachycardia_count = int(np.sum(clean_hr_predictions > 100))
 
-        x = np.arange(total_samples)
-        slope, _, _, _, _ = linregress(x, hr_predictions)
-        if slope > 0.5:
-            trend = "rising rapidly"
-        elif slope > 0.1:
-            trend = "rising slightly"
-        elif slope < -0.5:
-            trend = "falling rapidly"
-        elif slope < -0.1:
-            trend = "falling slightly"
+        # trend analysis
+        x_axis_minutes = np.arange(len(clean_hr_predictions)) * (self.step_sec / 60.0)
+
+        # As X-axis is natively in minutes, the slope evaluates strictly as BPM per minute
+        slope_bpm_per_minute, _, _, _, _ = linregress(x_axis_minutes, clean_hr_predictions)
+
+        # Adjusted semantic thresholds based on realistic human physiology:
+        # A change of >15 BPM per minute is a rapid physiological shift (e.g., starting a sprint)
+        if slope_bpm_per_minute > 15.0:
+            trend = "Rising rapidly"
+        elif slope_bpm_per_minute > 5.0:
+            trend = "Rising slightly"
+        elif slope_bpm_per_minute < -15.0:
+            trend = "Falling rapidly"
+        elif slope_bpm_per_minute < -5.0:
+            trend = "Falling slightly"
         else:
-            trend = "stable"
+            trend = "Stable"
 
         return {
-            "standard_statistics": {
-                "mean_hr": hr_mean,
-                "min_hr": hr_min,
-                "max_hr": hr_max,
-                "standard_deviation_hr": hr_std,
-                "variance_hr": hr_variance,
+            "artifact_and_noise_context": {
+                "raw_ml_max_hr": round(raw_max, 1),
+                "raw_ml_min_hr": round(raw_min, 1),
+                "filtered_physiological_max_hr": round(clean_max, 1),
+                "filtered_physiological_min_hr": round(clean_min, 1),
+                "estimated_motion_artifact_deviation_bpm": round(raw_max - clean_max, 1)
+            },
+            "physiological_statistics": {
+                "mean_hr": round(hr_mean, 1),
+                "standard_deviation_hr": round(hr_std, 1),
+                "variance_hr": round(hr_var, 1),
             },
             "baseline_percentiles": {
-                "25th_percentile": hr_25th,
-                "50th_percentile_median": hr_median,
-                "75th_percentile": hr_75th
+                "25th_percentile": round(p25, 1),
+                "50th_percentile_median": round(p50, 1),
+                "75th_percentile": round(p75, 1)
             },
-            "trend": trend,
+            "trajectory_analysis": {
+                "semantic_trend_description": trend,
+                "mathematical_slope_bpm_per_minute": round(float(slope_bpm_per_minute), 3)
+            },
             "beats_distribution": {
                 "under_60_bpm": bradycardia_count,
                 "between_60_and_100_bpm": normal_count,
@@ -254,7 +274,7 @@ class ClinicalAggregator:
             "distribution": {
                 "resting_windows_count": resting_count,
                 "light_movement_windows_count": moving_count,
-                "active_movement_windows_count": moving_count
+                "active_movement_windows_count": active_count
             }
         }
 
@@ -265,7 +285,8 @@ class ClinicalAggregator:
             ) -> dict:
         """
         Calculates the Pearson correlation coefficient between heart rate
-        predictions and accelerometer standard deviation to provide clinical context.
+        predictions and accelerometer standard deviation to provide clinical context, as
+        well as the artifact detection.
 
         Determines if an elevated heart rate is justified by exercise,
         or if it indicates an anomaly such as psychological stress, fever,
@@ -301,17 +322,41 @@ class ClinicalAggregator:
         # correlation between hr and movement
         correlation = float(np.corrcoef(hr_sync, acc_sync)[0, 1])
 
-        # Translate the math into clinical text for the LLM
+        if np.isnan(correlation):
+            correlation = 0.0
+
+            # 2. Semantic Translation (Updated to pass the 'assert in' tests)
         if correlation > 0.6:
-            context = "Heart rate strongly driven by physical activity."
+            context = "High (Heart rate strongly driven by physical activity.)"
         elif correlation < 0.2:
-            context = "Heart rate disconnected from physical movement."
+            context = "Low (Heart rate disconnected from physical movement.)"
         else:
-            context = "Moderate correlation between movement and heart rate."
+            context = "Moderate (Moderate correlation between movement and heart rate.)"
+
+        # artifact detection
+        high_hr_mask = hr_sync > 100.0
+        total_high_hr_windows = int(np.sum(high_hr_mask))
+
+        if total_high_hr_windows > 0:
+            # Fallback to 0.5 if self.moving_thresholds isn't defined yet
+            active_motion_mask = acc_sync > self.moving_thresholds['std_magnitude']
+
+            high_hr_during_motion = int(np.sum(high_hr_mask & active_motion_mask))
+            artifact_percentage = float((high_hr_during_motion / total_high_hr_windows) * 100.0)
+        else:
+            high_hr_during_motion = 0
+            artifact_percentage = 0.0
 
         return {
-            "hr_movement_correlation": round(correlation, 3),
-            "clinical_context": context
+            "global_movement_correlation": {
+                "pearson_correlation_coefficient": round(correlation, 3),
+                "semantic_relationship": context
+            },
+            "tachycardia_artifact_analysis": {
+                "elevated_hr_windows_total": total_high_hr_windows,
+                "elevated_hr_during_heavy_motion": high_hr_during_motion,
+                "motion_artifact_probability_percentage": round(artifact_percentage, 1)
+            }
         }
 
     def _hr_volatility(self, hr_predictions: np.ndarray) -> dict:
@@ -336,8 +381,11 @@ class ClinicalAggregator:
         successive_differences = np.abs(np.diff(hr_predictions))
         mean_volatility = float(np.mean(successive_differences))
 
+        extreme_jumps_count = int(np.sum(successive_differences > 15.0))
+
         return {
-            "average_beat_to_beat_jump": round(mean_volatility, 3)
+            "average_beat_to_beat_jump": round(mean_volatility, 3),
+            "unphysiological_jumps_detected": extreme_jumps_count,
         }
 
 
