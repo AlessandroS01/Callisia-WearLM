@@ -68,7 +68,7 @@ class ConsistencyEvaluator(BaseEvaluator):
             reasoning_texts = [query.internal_reasoning for query in reports]
         else:
             raise ValueError(
-                f"Not enough reports given to calculate the consistency score"
+                "Not enough reports given to calculate the consistency score"
             )
 
         embeddings = self.model_embedding.encode(reasoning_texts)

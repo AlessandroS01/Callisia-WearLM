@@ -33,13 +33,13 @@ def choice_model(
     if model_provider == "google":
         return ChatGoogleGenerativeAI(
             model=model_name, temperature=temperature)
-    elif model_provider == "openai":
+    if model_provider == "openai":
         return OpenAI(
             model=model_name, temperature=temperature)
-    elif model_provider == "ollama":
+    if model_provider == "ollama":
         return ChatOllama(
             model=model_name, temperature=temperature
         )
-    else:
-        return ChatGoogleGenerativeAI(
+
+    return ChatGoogleGenerativeAI(
             model=model_name, temperature=temperature)
