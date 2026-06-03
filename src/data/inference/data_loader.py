@@ -67,7 +67,9 @@ class DataLoader:
                     usecols=self.valid_leaf_data
                 )
 
-                return signal_data[signal_data["timestamp_ms"].between(timestamp, timestamp + 6 * 60 * 1000)]
+                return signal_data[
+                    signal_data["timestamp_ms"].between(timestamp, timestamp + 6 * 60 * 1000)
+                ]
 
         raise FileNotFoundError(
             f"No valid signal data file found for patient {patient_id} in {patient_dir}"
