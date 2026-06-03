@@ -7,13 +7,23 @@ base_path: "data/raw/callisia"
 valid_leaf_columns: ["timestamp_ms", "green", "acc_x", "acc_y", "acc_z"]
 
 inference:
-  patient_id: "P01"
-  target_rate_freq: 40
+  patient_id: "P04"
+  target_rate_freq: 40 # Hz, the frequency at which the model will make predictions
+  #bvp_freq: 64 # Hz, the frequency of the BVP signal
+  #acc_freq: 32 # Hz, the frequency of the accelerometer signal
 
 llm:
   # Configuration for the LLM
-  model_name: "gemini-3.1-flash-lite"
+  #provider: "google"
+  #model_name: "gemini-3.1-flash-lite"
+  provider: "ollama"
+  model_name: "medgemma:4b"
   temperature: 0.1
+
+evaluation:
+  # Configuration for the judge model used for evaluation
+  provider: "google"
+  model_name: "gemini-3.1-flash-lite"
 
 
 params:

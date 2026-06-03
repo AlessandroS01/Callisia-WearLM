@@ -10,12 +10,11 @@ clinical text.
 """
 import json
 
-from dotenv import load_dotenv, find_dotenv
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langsmith import traceable
 from pydantic import BaseModel
 
+from src.models.llm_creation import choice_model
 from src.prompts import CLINICAL_SYSTEM_PROMPT
 from src.schemas import ClinicalReportOutput
 
@@ -44,35 +43,43 @@ class LLMInsightsPipeline:
                        aggregation and LLM interaction.
         """
         self.config = config
-        raw_model = self._model_creation()
+        llm_param_list = self.config.get("llm", {})
+        raw_model = self._model_creation(
+            provider=llm_param_list.get("provider", "google"),
+            model_name=llm_param_list.get("model_name", "gemini-3.1-flash-lite"),
+            temperature=llm_param_list.get("temperature", 0.1)
+        )
         self.model = raw_model.with_structured_output(ClinicalReportOutput)
 
         self.chat_template = ChatPromptTemplate.from_messages([
             ("system", CLINICAL_SYSTEM_PROMPT),
-            ("user", "Here is the patient's 120-second telemetry payload:\n{clinical_data}")
+            ("user", (
+                "### INPUT: 120-SECOND TELEMETRY PAYLOAD\n"
+                "```json\n{clinical_data}\n```\n\n"
+                "Analyze the payload above according to the clinical directives "
+                "and generate the structured observational report."
+            ))
         ])
 
         self.chain = self.chat_template | self.model
 
-    def _model_creation(self) -> ChatGoogleGenerativeAI:
+    def _model_creation(self, provider: str, model_name: str, temperature: float):
         """
-        Helper method to dynamically instantiate the Google Gemini chat model
+        Helper method to dynamically instantiate the chat model
         based on the global configuration parameters.
 
-        :return: A configured instance of ChatGoogleGenerativeAI.
+        :param provider: The provider name of the model
+        :param model_name: The name of the model
+        :param temperature: The temperature of the model
+
+        :return: A configured instance of the provided model
         """
-        load_dotenv(find_dotenv(raise_error_if_not_found=True), override=True)
 
-        llm_param_list = self.config.get("llm", {})
-        model_name = llm_param_list.get("model_name", "gemini-3.1-flash-lite")
-        temperature = llm_param_list.get("temperature", 0.1)
-
-        model = ChatGoogleGenerativeAI(
-            model=model_name,
+        return choice_model(
+            model_provider=provider,
+            model_name=model_name,
             temperature=temperature
         )
-
-        return model
 
     @traceable
     def _pipeline(self, payload: dict) -> BaseModel:

@@ -46,7 +46,7 @@ class DataLoader:
         self.base_path = base_path
         self.valid_leaf_data = valid_leaf_columns
 
-    def load_patient_signals(self, patient_id: str) -> pd.DataFrame:
+    def load_patient_signals(self, patient_id: str, timestamp) -> pd.DataFrame:
         """
         Loads raw BVP and ACC data for a specific patient.
 
@@ -67,7 +67,7 @@ class DataLoader:
                     usecols=self.valid_leaf_data
                 )
 
-                return signal_data
+                return signal_data[signal_data["timestamp_ms"].between(timestamp, timestamp + 6 * 60 * 1000)]
 
         raise FileNotFoundError(
             f"No valid signal data file found for patient {patient_id} in {patient_dir}"

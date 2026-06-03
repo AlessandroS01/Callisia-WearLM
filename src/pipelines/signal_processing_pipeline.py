@@ -120,7 +120,7 @@ class SignalProcessingPipeline:
         return df_data
 
 
-    def _clean_data(self, signal_data: pd.DataFrame) -> pd.DataFrame:
+    def _clean_data(self, signal_data: pd.DataFrame, timestamp) -> pd.DataFrame:
         """
         Orchestrates the transformation of raw sensor data into a standardized
         temporal format by chaining preparation and resampling procedures.
@@ -145,7 +145,7 @@ class SignalProcessingPipeline:
         signal_data = self._prepare_datetime_index(signal_data)
         return self._standardize_sampling_rate(signal_data)
 
-    def run(self, patient_id: str) -> tuple:
+    def run(self, patient_id: str, timestamp) -> tuple:
         """
         Executes the pipeline for a specific patient.
 
@@ -159,10 +159,10 @@ class SignalProcessingPipeline:
         print(f"[{patient_id}] Loading signals...")
 
         # Load the data using the initialized tool
-        signal_data = self.data_loader.load_patient_signals(patient_id)
+        signal_data = self.data_loader.load_patient_signals(patient_id, timestamp)
 
         print(f"[{patient_id}] Cleaning signals...")
-        cleaned_data = self._clean_data(signal_data)
+        cleaned_data = self._clean_data(signal_data, timestamp)
 
         # Predict Heart Rate
         print(f"[{patient_id}] Predicting heart rate...")

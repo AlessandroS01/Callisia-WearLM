@@ -8,13 +8,12 @@ for the application.
 
 import time
 
-import schedule
 import yaml
 
 from src.orchestrator.pipeline_orchestrator import PipelineOrchestrator
 
 
-def job(config: dict):
+def job(config: dict, timestamp):
     """
     Executes a single, complete run of the clinical insights architecture.
 
@@ -36,7 +35,7 @@ def job(config: dict):
     orchestrator = PipelineOrchestrator(config=config)
 
     # Run the full pipeline
-    orchestrator.run_full_process()
+    orchestrator.run_full_process(timestamp)
 
     print("Run Complete. Waiting for next interval...\n")
 
@@ -52,37 +51,20 @@ def load_config(config_path: str) -> dict:
         config = yaml.safe_load(f)
     return config
 
-def main():
+def main(timestamp):
     """
-    Initializes the job scheduler and keeps the main execution thread alive.
+    Runs a single job with the provided timestamp.
 
-    Sets up the recurring execution interval, forces an immediate initial
-    run so the system does not idle during the first cycle, and then enters
-    a lightweight infinite loop to poll the schedule queue. Gracefully handles
-    keyboard interrupts (Ctrl+C) for safe shutdowns.
+    Executes the pipeline orchestrator once with the given timestamp.
+    This allows external callers (like pipeline_test.py) to control
+    timestamp increments and call main() multiple times.
+
+    :param timestamp: The timestamp to use for this execution.
     """
-    # retrieves the interval from the config file, defaulting to 120 seconds if not specified
     config = load_config('config.yaml')
-    interval_seconds = config.get(
-        "orchestrator", {}
-    ).get("run_interval_schedule", 120)
-
-    print(f"Starting Clinical Insights Service. Interval: {interval_seconds}s")
-
-    # Run the job immediately upon startup (so you don't have to wait 2 mins to see if it works)
-    job(config=config)
-
-    # Schedule the recurring job
-    schedule.every(interval_seconds).seconds.do(job, config=config)
-
-    # Keep the script running forever
-    try:
-        while True:
-            schedule.run_pending()
-            time.sleep(1)  # Check every second if a job is due
-
-    except KeyboardInterrupt:
-        print("\nService stopped by user.")
+    print(f"Starting Clinical Insights Service at timestamp: {timestamp}")
+    job(config=config, timestamp=timestamp)
 
 if __name__ == "__main__":
-    main()
+    # For direct execution, use current timestamp in milliseconds
+    main(int(time.time() * 1000))

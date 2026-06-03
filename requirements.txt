@@ -14,5 +14,8 @@ pytest
 python-dotenv
 langchain
 langchain-google-genai
+langchain-openai
+langchain-ollama
 langsmith
 matplotlib
+sentence-transformers

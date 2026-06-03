@@ -45,8 +45,8 @@ class WESADDaliaProcessor:
         self.window_size = WINDOW_SIZE_SEC * BVP_SAMPLING_RATE
         self.step_size = STEP_SIZE_SEC * BVP_SAMPLING_RATE
 
-        bvp_data = self._retrieve_data("wrist/wrist_BVP.csv")
-        acc_data = self._retrieve_data("wrist/wrist_ACC.csv")
+        bvp_data = self._retrieve_data("wrist/BVP.csv")
+        acc_data = self._retrieve_data("wrist/ACC.csv")
 
         # Normalize each signal independently (z-score normalization)
         bvp_data = self._normalize_signal(bvp_data)
