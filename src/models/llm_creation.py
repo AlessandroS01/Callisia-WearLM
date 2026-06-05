@@ -33,9 +33,6 @@ def choice_model(
 
     load_dotenv(find_dotenv(raise_error_if_not_found=True), override=True)
 
-    if model_provider == "google":
-        return ChatGoogleGenerativeAI(
-            model=model_name, temperature=temperature)
     if model_provider == "openai":
         return OpenAI(
             model=model_name, temperature=temperature)

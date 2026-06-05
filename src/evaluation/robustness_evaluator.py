@@ -6,7 +6,6 @@ artifact probability context of a clinical telemetry payload. It measures the
 stochastic jitter and logical pivot points of the model's 'requires_attention' flag.
 """
 import copy
-import time
 from typing import Optional
 
 import numpy as np
@@ -108,7 +107,7 @@ class RobustnessEvaluator(BaseEvaluator):
                     # This call might now fail due to schema issues at high temp
                     report: ClinicalReportOutput = self.llm_pipeline.run(test_payload)
                     level_flags.append(1 if report.requires_attention else 0)
-                except Exception as e:
+                except Exception as e: # pylint: disable=broad-exception-caught
                     # IMPORTANT: change "llm" parameters in config file, not "evaluation"
                     # IMPORTANT: set the temperature to 0.7-0.8 to check jittering
                     level_flags.append(0)

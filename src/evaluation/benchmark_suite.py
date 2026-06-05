@@ -13,7 +13,6 @@ and manages the lifecycle of the 'LLM-as-a-Judge' evaluation pipeline.
 """
 
 import json
-import time
 from pathlib import Path
 from random import randint
 
@@ -224,7 +223,7 @@ class BenchmarkSuite:
                 reports.append(report)
                 success_count += 1
                 print("SUCCESS")
-            except Exception as e:
+            except Exception as e: # pylint: disable=broad-exception-caught
                 failure_count += 1
                 print(f"FAILED (Error: {type(e).__name__})")
 
@@ -391,7 +390,7 @@ class BenchmarkSuite:
                 provider strings and values denote their calculated mean average execution
                 latency in seconds.
         """
-        mean_average_time = dict()
+        mean_average_time = {}
 
         for provider in self.providers:
 
