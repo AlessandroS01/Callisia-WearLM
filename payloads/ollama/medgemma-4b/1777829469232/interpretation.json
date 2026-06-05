@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The data indicates a stable heart rate with moderate correlation between movement and cardiovascular activity, no sudden jolts detected, and an autonomic nervous system proxy indicating relatively stable heart rate variability.",
+  "primary_observation": "The patient exhibits a stable heart rate with moderate correlation to physical movement. No significant anomalies were identified during the 120-second window.",
+  "cardiovascular_state": "The average heart rate is 69.2 bpm, with a standard deviation of 3.1 bpm and a variance of 9.8 bpm. The 25th percentile is 65.4 bpm, the median (50th percentile) is 70.5 bpm, and the 75th percentile is 71.6 bpm. The heart rate trajectory is stable.",
+  "autonomic_tone": "The autonomic nervous system proxy indicates a relatively stable heart rate variability with an average beat-to-beat jump of 1.068 bpm. No unphysiological jumps were detected.",
+  "movement_context": "Physical movement is present, but the correlation between movement and heart rate is moderate. The patient exhibits periods of light movement and resting windows.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Continue monitoring.",
+  "technical_notes": "The cardiovascular analysis contains slightly fewer predictions than the movement analysis. This is caused by the ML model's 20-second historical receptive field, NOT a sensor failure or missing data."
+}

@@ -16,6 +16,9 @@ langchain
 langchain-google-genai
 langchain-openai
 langchain-ollama
+langchain-groq
+langchain-mistralai
+langchain-xai
 langsmith
 matplotlib
 sentence-transformers

@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The patient's heart rate is within a normal range, with a mean of 69.1 bpm and a slight falling trend. The autonomic nervous system proxy indicates dynamism, suggesting a healthy heart rate variability. The clinical context shows a high correlation between heart rate and physical activity, indicating that the elevated heart rate is justified by the patient's movement.",
+  "primary_observation": "The patient exhibits a normal heart rate with a slight falling trend, strongly correlated with physical activity.",
+  "cardiovascular_state": "Mean HR: 69.1 bpm, 25th percentile: 63.9 bpm, 50th percentile: 65.8 bpm, 75th percentile: 72.6 bpm. Falling trend with a slope of -13.401 bpm/min.",
+  "autonomic_tone": "Dynamism",
+  "movement_context": "The patient exhibited light to moderate physical activity, with 5 light movement windows and 3 active movement windows. The heart rate is strongly driven by physical activity, with a Pearson correlation coefficient of 0.798.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "None",
+  "technical_notes": "Data alignment note: The data alignment note from the system_telemetry block is acknowledged."
+}

@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The patient's cardiovascular analysis shows a stable trajectory with a negative slope, indicating a decrease in heart rate over time. The mean HR is 63.5 bpm, with a standard deviation of 1.8 bpm and a variance of 3.3 bpm. The 25th percentile is 61.7 bpm, the 50th percentile is 63.4 bpm, and the 75th percentile is 65.3 bpm. The clinical context indicates a moderate correlation between movement and heart rate, but the movement analysis shows no sudden jolts or heavy motion. The autonomic nervous system proxy shows a stable autonomic tone with an average beat-to-beat jump of 0.674 and no unphysiological jumps detected.",
+  "primary_observation": "The patient exhibits a stable heart rate with a moderate correlation between movement and heart rate, but no sudden jolts or heavy motion.",
+  "cardiovascular_state": "Mean HR: 63.5 bpm, Standard Deviation: 1.8 bpm, Variance: 3.3 bpm. 25th Percentile: 61.7 bpm, 50th Percentile: 63.4 bpm, 75th Percentile: 65.3 bpm. Stable trajectory with a negative slope of -1.134 bpm/min.",
+  "autonomic_tone": "Stable",
+  "movement_context": "The patient's movement analysis shows no sudden jolts or heavy motion, with a mean noise level of 1.363 and a moderate correlation between movement and heart rate. The clinical context indicates a moderate correlation between movement and heart rate, but the movement analysis shows no sudden jolts or heavy motion.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Verify sensor contact and monitor for sustained trends.",
+  "technical_notes": "Data alignment note: The cardiovascular analysis contains slightly fewer predictions than the movement analysis due to the ML model's 20-second historical receptive field."
+}

@@ -8,8 +8,7 @@ for the application.
 
 import time
 
-import yaml
-
+from src.config_loader import load_config
 from src.orchestrator.pipeline_orchestrator import PipelineOrchestrator
 
 
@@ -38,18 +37,6 @@ def job(config: dict, timestamp):
     orchestrator.run_full_process(timestamp)
 
     print("Run Complete. Waiting for next interval...\n")
-
-def load_config(config_path: str) -> dict:
-    """
-    Reads and parses the YAML configuration file.
-
-    :param config_path: The file path to the YAML configuration file.
-    :return: A dictionary containing all configuration parameters.
-    :raises FileNotFoundError: If the specified config file does not exist.
-    """
-    with open(config_path, 'r', encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    return config
 
 def main(timestamp):
     """

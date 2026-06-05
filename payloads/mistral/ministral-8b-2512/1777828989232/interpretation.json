@@ -1,0 +1,12 @@
+{
+  "internal_reasoning": "1. The cardiovascular data shows a stable heart rate (mean: 67.5 bpm) with minimal deviation (std: 2.2) and no beats outside the 60-100 bpm range. The trajectory is mathematically stable (slope: 1.386 bpm/min) and semantically described as such.\n\n2. Movement analysis confirms the patient is in a resting state (56/56 windows classified as resting), with no jolts or active movement. The Pearson correlation coefficient (0.077) aligns with the clinical context labeling the HR as 'disconnected from physical movement,' reinforcing the resting state.\n\n3. The autonomic nervous system proxy indicates low volatility (average beat-to-beat jump: 0.796), suggesting parasympathetic dominance or a relaxed state. No unphysiological jumps were detected.\n\n4. The EWS2 HR score is 0, as the mean HR (67.5 bpm) falls within the 51-90 bpm range. No anomalies or flags are present.\n\n5. The technical note confirms the expected discrepancy between movement and cardiovascular data arrays due to the model's receptive field, which does not impact clinical interpretation.",
+  "primary_observation": "The patient exhibits a stable, resting state with a heart rate consistently within normal limits and no physical activity detected.",
+  "cardiovascular_state": "Heart rate is stable (mean: 67.5 bpm, range: 62.9–70.1 bpm) with no tachycardia or bradycardia episodes. All beats fall within the 60–100 bpm range. The trajectory is mathematically stable (slope: 1.386 bpm/min).",
+  "autonomic_tone": "Low volatility (beat-to-beat jump: 0.796) suggests a relaxed autonomic state, likely parasympathetically dominated.",
+  "movement_context": "Patient is in a resting state (100% of movement windows classified as resting). Heart rate is disconnected from physical activity (Pearson correlation: 0.077), consistent with baseline rest.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [],
+  "requires_attention": false,
+  "recommended_system_action": "Continue baseline monitoring. No immediate action required.",
+  "technical_notes": "Expected array length discrepancy acknowledged due to model receptive field (20-second warm-up). Data integrity confirmed."
+}

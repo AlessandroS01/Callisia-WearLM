@@ -6,6 +6,7 @@ artifact probability context of a clinical telemetry payload. It measures the
 stochastic jitter and logical pivot points of the model's 'requires_attention' flag.
 """
 import copy
+import time
 from typing import Optional
 
 import numpy as np
@@ -80,20 +81,40 @@ class RobustnessEvaluator(BaseEvaluator):
         probabilities = np.linspace(0, 100, steps + 1)
         sweep_results = []
 
+        print(50*"-")
+        print("Starting perturbation evaluation")
+        print(50*"-")
+
         for prob in probabilities:
             level_flags = []
 
-            # Execute 10 trials for each probability value to measure jitter
-            for _ in range(trials_per_level):
-                # Use deepcopy for nested clinical_context dictionary
-                test_payload = copy.deepcopy(base_payload)
-                test_payload["clinical_context"]["motion_artifact_probability_percentage"] \
-                    = float(prob)
+            print("")
+            print(20 * "*")
+            print(f"Noise probability: {prob}")
+            print(20 * "*")
 
-                # IMPORTANT: change "llm" parameters in config file, not "evaluation"
-                # IMPORTANT: set the temperature to 0.7-0.8 to check jittering
-                report: ClinicalReportOutput = self.llm_pipeline.run(test_payload)
-                level_flags.append(1 if report.requires_attention else 0) # 1=True, 0=False
+            # Use deepcopy for nested clinical_context dictionary
+            test_payload = copy.deepcopy(base_payload)
+            test_payload[
+                "clinical_context"
+            ]["tachycardia_artifact_analysis"]["motion_artifact_probability_percentage"] \
+                = float(prob)
+
+            print(f"Perturbed payload: {test_payload}")
+
+            # Execute 10 trials for each probability value to measure jitter
+            for index in range(trials_per_level):
+                try:
+                    # This call might now fail due to schema issues at high temp
+                    report: ClinicalReportOutput = self.llm_pipeline.run(test_payload)
+                    level_flags.append(1 if report.requires_attention else 0)
+                except Exception as e:
+                    # IMPORTANT: change "llm" parameters in config file, not "evaluation"
+                    # IMPORTANT: set the temperature to 0.7-0.8 to check jittering
+                    level_flags.append(0)
+                    print(f"Warning: Trial failed at {prob}% noise. Error: {type(e).__name__}")
+
+                print(f"--- Perturbation {index + 1} Done")
 
             sweep_results.append({
                 # Noise level of the motion artifact probability percentage (e.g. 0%, 10%, etc..)
@@ -115,6 +136,10 @@ class RobustnessEvaluator(BaseEvaluator):
 
                 "flags": level_flags
             })
+
+            print(f"Sweep results after {prob} noise: \n{sweep_results}")
+
+        print(f"Obtained results:\n{sweep_results}\n")
 
         return self._calculate_metrics(sweep_results)
 
@@ -142,6 +167,8 @@ class RobustnessEvaluator(BaseEvaluator):
             if result["alert_density"] < 0.5:
                 pivot_threshold = result["probability"]
                 break
+
+        print(f"Pivot threshold: {pivot_threshold}")
 
         # Measures stability by telling how cleanly the model changed opinion
         # 0% and 100% noise -> the model should be certain (var = 0.00)

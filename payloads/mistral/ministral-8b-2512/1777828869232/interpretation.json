@@ -1,0 +1,12 @@
+{
+  "internal_reasoning": "1. The cardiovascular data shows a stable heart rate (mean HR = 65.7 bpm) with minimal deviation (SD = 1.2) and no beats outside the 60-100 bpm range. The trajectory is mathematically slightly upward (1.589 bpm/min) but semantically labeled as 'Stable'.\n\n2. Movement analysis confirms resting state (57/57 windows classified as resting), with no jolts or active movement. The Pearson correlation coefficient (0.441) is labeled as 'Moderate' in clinical context, but the actual movement is negligible, suggesting the correlation is weak in absolute terms.\n\n3. Autonomic tone proxy (beat-to-beat jump = 0.721) indicates low volatility, consistent with resting state. No unphysiological jumps or anomalies detected.\n\n4. The EWS2 HR score is 0 (65.7 bpm falls within 51-90 bpm). No anomalies or flags detected in cardiovascular or movement data.",
+  "primary_observation": "The patient exhibits a stable, resting heart rate with negligible physical movement over the 120-second window.",
+  "cardiovascular_state": "Heart rate remains within normal resting range (mean: 65.7 bpm, 25th-75th percentile: 65.3–66.5 bpm). No tachycardia or bradycardia detected. Slight upward mathematical trend (1.589 bpm/min) labeled as 'Stable'.",
+  "autonomic_tone": "Low volatility (SD = 1.2 bpm, beat-to-beat jump = 0.721), consistent with parasympathetic dominance (resting state).",
+  "movement_context": "Patient is in a resting state (57/57 windows classified as resting). The 'Moderate' correlation between movement and heart rate is misleading due to the absence of physical activity; HR stability is justified by inactivity.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [],
+  "requires_attention": false,
+  "recommended_system_action": "Continue baseline monitoring. No immediate action required.",
+  "technical_notes": "Movement array and cardiovascular array length discrepancy acknowledged as expected due to the model's 20-second receptive field. Data alignment confirmed."
+}

@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The data indicates a moderate correlation between movement and heart rate, with some elevated heart rate windows detected during periods of activity. The patient exhibits stable heart rate with a slight increase in variability.",
+  "primary_observation": "The patient's heart rate shows a moderate correlation with movement, with occasional elevations during active periods. The patient exhibits stable heart rate with a slight increase in variability.",
+  "cardiovascular_state": "The mean heart rate is 64.9 bpm, with a standard deviation of 4.4 bpm and a variance of 19.6 bpm. The 25th percentile is 61.7 bpm, the median is 63.7 bpm, and the 75th percentile is 64.7 bpm. The trajectory analysis indicates a stable heart rate.",
+  "autonomic_tone": "The patient exhibits high heart rate volatility decoupled from physical movement.",
+  "movement_context": "The patient shows moderate correlation between movement and heart rate, with some elevated heart rate windows detected during periods of activity.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "sudden_jolt_detected: true"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "None detected",
+  "technical_notes": "The cardiovascular analysis contains slightly fewer predictions than the movement analysis. This is caused by the ML model's 20-second historical receptive field, NOT a sensor failure or missing data."
+}

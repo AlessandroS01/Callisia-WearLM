@@ -8,6 +8,7 @@ It focuses on detecting logical decoupling (where reasoning drifts from math)
 and diagnostic leakage (violations of safety guardrails).
 """
 import json
+import time
 from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -37,13 +38,13 @@ class ClinicalAuditorEvaluator(BaseEvaluator):
 
     def __init__(self,
                  llm_pipeline: Optional[LLMInsightsPipeline] = None,
-                 judge_config=None):
+                 judge_config = None):
         """
         Initializes the auditor with a specific judge configuration and factory settings.
 
         Args:
             llm_pipeline (LLMInsightsPipeline, optional): The pipeline instance under test.
-            judge_config (dict): Configuration for the Judge LLM.
+            judge_config: Configuration for the Judge LLM.
                 Supported keys:
                 - 'provider' (str): provider of the model
                 - 'model_name' (str): Target model (e.g., "gemini-3.1-flash-lite").
@@ -168,6 +169,9 @@ class ClinicalAuditorEvaluator(BaseEvaluator):
             payload = item[0]
             report = item[1]
 
+            print(50*"-")
+            print(f"Evaluating report: \n{report}\nfor the payload:\n{payload}\n\n\n")
+
             audit_result = self._pipeline(
                 payload=payload,
                 report=report
@@ -175,6 +179,10 @@ class ClinicalAuditorEvaluator(BaseEvaluator):
 
             result = audit_result.model_dump_json(indent=2)
 
+            print(f"Result: \n{result}\n")
+
             results.append(result)
+            print("Starting 15 seconds sleeping...") # as judge model has free tier
+            time.sleep(15)
 
         return results

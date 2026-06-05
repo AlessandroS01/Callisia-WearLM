@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The data indicates a stable heart rate with minimal movement, suggesting a resting state or low-intensity activity. The cardiovascular analysis shows a mean HR of 64.7 bpm, with a standard deviation of 2.3 bpm and a variance of 5.3 bpm. The 25th percentile is 63.5 bpm, the median is 63.8 bpm, and the 75th percentile is 64.6 bpm. The trajectory analysis indicates a stable trend with a negative slope of -2.983 bpm/minute. The beats distribution shows that 51 out of 320 beats are between 60 and 100 bpm, indicating a normal heart rate range. The movement analysis reveals no sudden jolts detected, and the global movement correlation is high (0.692), suggesting a strong relationship between physical activity and heart rate. There were zero elevated HR windows during heavy motion or any motion artifact probability.",
+  "primary_observation": "The patient exhibits stable cardiovascular function with minimal movement, indicating a resting state or low-intensity activity.",
+  "cardiovascular_state": "The patient's heart rate remains within normal limits (60-100 bpm) throughout the 120-second window. The average heart rate is 64.7 bpm with minimal variability.",
+  "autonomic_tone": "The autonomic nervous system proxy indicates a relatively stable and consistent heart rate, suggesting an appropriate level of autonomic control.",
+  "movement_context": "Physical activity appears to be low or absent during this period, as indicated by the absence of sudden jolts and a high correlation between movement and heart rate. The patient is likely at rest or performing very light activities.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Continue monitoring.",
+  "technical_notes": "The data is consistent with the clinical context. The model's receptive field may be contributing to slight variations in the analysis of heart rate and movement, but these are not clinically significant."
+}

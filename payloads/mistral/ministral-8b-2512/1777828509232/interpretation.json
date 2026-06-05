@@ -1,0 +1,12 @@
+{
+  "internal_reasoning": "1. The cardiovascular data shows a stable heart rate (HR) with a mean of 63.5 bpm, standard deviation of 1.8 bpm, and no beats outside the 60-100 bpm range. The trajectory analysis indicates a slight downward trend (-1.133 bpm/min), but this is minimal and classified as 'Stable' by the system. \n\n2. Movement analysis confirms the patient is in a resting state (57/57 windows classified as resting), with no sudden jolts or active movement detected. The Pearson correlation coefficient of 0.484 is labeled as 'Moderate' by the system, indicating a weak-to-moderate relationship between movement and HR, which aligns with the resting state.\n\n3. The autonomic nervous system proxy shows low beat-to-beat variability (average jump of 0.679 bpm), suggesting a stable autonomic tone without unphysiological spikes. The clinical context confirms no elevated HR windows or motion artifacts.\n\n4. The system_telemetry notes the expected discrepancy in array lengths due to the ML model's receptive field, which does not impact interpretation here.\n\n5. The EWS2 HR score is 0, as the mean HR (63.5 bpm) falls within the 51-90 bpm range. No anomalies or flags are present.",
+  "primary_observation": "The patient exhibits a stable resting state with a consistent heart rate and minimal physical activity over the 120-second window.",
+  "cardiovascular_state": "Heart rate remains stable within the 60-100 bpm range (mean: 63.5 bpm, SD: 1.8 bpm). No tachycardia or bradycardia detected. Slight downward trend (-1.133 bpm/min) classified as 'Stable'.",
+  "autonomic_tone": "Low beat-to-beat variability (avg. jump: 0.679 bpm) indicates a rigid but stable autonomic tone, consistent with resting conditions.",
+  "movement_context": "Patient is in a resting state (100% of windows classified as resting). Moderate correlation (Pearson r = 0.484) between movement and HR is justified by the absence of physical activity.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [],
+  "requires_attention": false,
+  "recommended_system_action": "Continue baseline monitoring. No immediate action required.",
+  "technical_notes": "Expected array length discrepancy acknowledged due to ML model's 20-second receptive field. No sensor or data integrity issues detected."
+}

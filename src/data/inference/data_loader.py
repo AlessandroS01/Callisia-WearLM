@@ -68,7 +68,7 @@ class DataLoader:
                 )
 
                 return signal_data[
-                    signal_data["timestamp_ms"].between(timestamp, timestamp + 6 * 60 * 1000)
+                    signal_data["timestamp_ms"].between(timestamp, timestamp + 2 * 60 * 1000)
                 ]
 
         raise FileNotFoundError(

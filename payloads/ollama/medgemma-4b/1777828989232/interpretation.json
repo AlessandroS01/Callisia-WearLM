@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The data indicates a stable heart rate with minimal movement, suggesting a low correlation between physical activity and cardiovascular response. The absence of sudden jolts or significant autonomic nervous system reactivity further supports this observation.",
+  "primary_observation": "The patient exhibits a stable heart rate with minimal movement, indicating a low correlation between physical exertion and cardiovascular response.",
+  "cardiovascular_state": "The mean heart rate is 67.5 bpm, with a standard deviation of 2.2 bpm and a variance of 4.7 bpm. The 25th percentile is 66.1 bpm, the median (50th percentile) is 68.0 bpm, and the 75th percentile is 69.5 bpm. The trajectory analysis indicates a stable heart rate.",
+  "autonomic_tone": "The autonomic nervous system proxy shows low volatility in the heart rate, suggesting a relatively stable cardiovascular state.",
+  "movement_context": "The movement analysis reveals minimal activity with no sudden jolts detected. The correlation between heart rate and movement is low (Pearson coefficient of 0.085).",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Continue monitoring.",
+  "technical_notes": "The cardiovascular analysis contains slightly fewer predictions than the movement analysis. This is caused by the ML model's 20-second historical receptive field, NOT a sensor failure or missing data."
+}

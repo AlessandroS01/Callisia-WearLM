@@ -4,8 +4,11 @@ Module for creating the LLM for the pipeline and the evaluation
 
 from dotenv import load_dotenv, find_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+from langchain_mistralai import ChatMistralAI
 from langchain_ollama import ChatOllama
 from langchain_openai import OpenAI
+from langchain_xai import ChatXAI
 
 
 def choice_model(
@@ -20,7 +23,7 @@ def choice_model(
     to ensure deterministic auditing results.
 
     Args:
-        model_provider (str): The cloud provider (google/openai).
+        model_provider (str): The cloud provider
         model_name (str): The specific model identifier.
         temperature (float): The temperature of the model.
 
@@ -40,6 +43,17 @@ def choice_model(
         return ChatOllama(
             model=model_name, temperature=temperature
         )
-
+    if model_provider == "xai":
+        return ChatXAI(
+            model=model_name, temperature=temperature
+        )
+    if model_provider == "mistral":
+        return ChatMistralAI(
+            model=model_name, temperature=temperature
+        )
+    if model_provider == "groq":
+        return ChatGroq(
+            model=model_name, temperature=temperature
+        )
     return ChatGoogleGenerativeAI(
             model=model_name, temperature=temperature)

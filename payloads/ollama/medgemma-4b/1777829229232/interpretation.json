@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The data indicates a rising heart rate with moderate correlation to movement, no sudden jolts detected, and a relatively stable autonomic nervous system proxy. The cardiovascular analysis shows a mean HR of 68.6 bpm with a standard deviation of 4.7 bpm, suggesting a generally stable cardiac state. The movement analysis reveals that the patient is mostly at rest, but there are some periods of light activity and occasional active movement. There were no sudden jolts detected during the observation period.",
+  "primary_observation": "The patient exhibits a rising heart rate with moderate correlation to physical activity, without any significant anomalies or sudden jolts detected.",
+  "cardiovascular_state": "The patient's heart rate is generally stable, with a mean of 68.6 bpm and a standard deviation of 4.7 bpm. The heart rate fluctuates slightly throughout the observation period, but there are no indications of tachycardia or bradycardia. The heart rate is moderately correlated to movement.",
+  "autonomic_tone": "The patient's autonomic nervous system proxy indicates a relatively stable state with minimal beat-to-beat variability.",
+  "movement_context": "The patient exhibits periods of rest, light activity and occasional active movement. The correlation between the heart rate and movement is moderate.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Continue monitoring the patient's heart rate and movement.",
+  "technical_notes": "The data analysis confirms that there are no sudden jolts detected. The correlation between the cardiovascular and movement signals is moderate. The patient exhibits a rising heart rate with moderate correlation to physical activity, without any significant anomalies or sudden jolts detected."
+}

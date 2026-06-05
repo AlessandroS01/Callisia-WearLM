@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "Based on the provided telemetry data, the patient's heart rate is stable with a slight upward trend. The mean HR is 67.4 bpm, and the standard deviation is 2.1 bpm. The 25th percentile is 65.9 bpm, the 50th percentile is 68.0 bpm, and the 75th percentile is 69.4 bpm. The trajectory analysis indicates a stable trend with a slight upward slope of 1.38 bpm/min. The beats distribution shows 0 under 60 bpm, 50 between 60 and 100 bpm, and 0 over 100 bpm. The clinical context indicates a low correlation between heart rate and physical movement, with a Pearson correlation coefficient of 0.097 and a semantic relationship of 'Low (Heart rate disconnected from physical movement.)'.",
+  "primary_observation": "The patient exhibits a stable heart rate with a slight upward trend, disconnected from physical movement.",
+  "cardiovascular_state": "Mean HR: 67.4 bpm, Standard Deviation: 2.1 bpm, 25th Percentile: 65.9 bpm, 50th Percentile: 68.0 bpm, 75th Percentile: 69.4 bpm. Stable trajectory with a slight upward trend (1.38 bpm/min).",
+  "autonomic_tone": "Stable",
+  "movement_context": "The patient is at rest, with no significant physical activity detected. The mean noise level is 0.951, and the sudden jolt detected flag is false. The distribution shows 56 resting windows, 0 light movement windows, and 0 active movement windows. The global movement correlation indicates a low correlation between heart rate and physical movement.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Verify sensor contact and monitor for sustained trends.",
+  "technical_notes": "Data alignment note: The cardiovascular analysis contains slightly fewer predictions than the movement analysis due to the ML model's 20-second historical receptive field."
+}

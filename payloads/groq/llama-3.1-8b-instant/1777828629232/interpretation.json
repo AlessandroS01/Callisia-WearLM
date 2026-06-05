@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The patient's heart rate is stable with a moderate correlation between movement and heart rate. However, a sudden jolt was detected, indicating a potential fall or physical impact. The autonomic nervous system proxy suggests a rigid heart rate pattern.",
+  "primary_observation": "The patient exhibits a stable heart rate with a moderate correlation between movement and heart rate, but a sudden jolt was detected, indicating a potential fall or physical impact.",
+  "cardiovascular_state": "Mean HR: 64.8 bpm, 25th percentile: 61.9 bpm, 50th percentile: 63.6 bpm, 75th percentile: 64.7 bpm, Stable trend, Slope: 4.619 bpm/min",
+  "autonomic_tone": "Rigid",
+  "movement_context": "Moderate correlation between movement and heart rate. The patient exhibited 2 windows of active movement and 8 windows of light movement.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "Sudden jolt detected"
+  ],
+  "requires_attention": true,
+  "recommended_system_action": "Verify sensor contact and monitor for sustained trend.",
+  "technical_notes": "Data alignment note: The cardiovascular analysis contains slightly fewer predictions than the movement analysis due to the ML model's 20-second historical receptive field."
+}

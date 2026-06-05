@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The data indicates a stable heart rate with some variability, correlated with movement. A sudden jolt was detected.",
+  "primary_observation": "The patient exhibits a stable heart rate within normal limits, strongly correlated to physical activity, with occasional fluctuations and a single instance of sudden movement.",
+  "cardiovascular_state": "The mean heart rate is 69.8 bpm, with a standard deviation of 3.2 bpm. The heart rate fluctuates between 64.2 and 75.9 bpm. The patient's heart rate remains within the normal range throughout the observation window.",
+  "autonomic_tone": "The autonomic nervous system proxy indicates moderate volatility in the heart rate, reflecting the influence of physical activity on cardiovascular function.",
+  "movement_context": "Physical movement is present during the 120-second window. The patient experiences periods of rest and light movement, with a single instance of sudden jolt detected.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "Sudden jolt detected."
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "None required",
+  "technical_notes": "The cardiovascular analysis contains slightly fewer predictions than the movement analysis. This is caused by the ML model's 20-second historical receptive field, NOT a sensor failure or missing data."
+}

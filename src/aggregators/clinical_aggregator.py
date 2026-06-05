@@ -42,8 +42,13 @@ class ClinicalAggregator:
         # initialize params
         self.window_sec = config.get('params', {}).get('seconds_per_window', 8)
         self.step_sec = config.get('params', {}).get('step_size', 2)
-        self.bvp_rate = config.get('inference', {}).get('bvp_freq', 64)
-        self.acc_rate = config.get('inference', {}).get('acc_freq', 32)
+
+        if config.get('inference', {}).get('target_rate_freq', 0) != 0:
+            self.bvp_rate = config.get('inference', {}).get('target_rate_freq', 40)
+            self.acc_rate = config.get('inference', {}).get('target_rate_freq', 40)
+        else:
+            self.bvp_rate = config.get('inference', {}).get('bvp_freq', 64)
+            self.acc_rate = config.get('inference', {}).get('acc_freq', 32)
 
         # We calculate window size based on the highest frequency after upsampling
         self.target_rate = int(max(self.bvp_rate, self.acc_rate))

@@ -1,0 +1,12 @@
+{
+  "internal_reasoning": "1. The cardiovascular data shows a stable HR range (61.4-74.1 bpm raw, filtered 63.8-72.8 bpm) with a mean of 69.2 bpm and low standard deviation (3.1). The trajectory is labeled 'Stable' with a minimal slope (1.319 bpm/min), indicating no significant trend. \n2. Movement analysis indicates predominantly 'light movement' (31 windows) with no sudden jolts or active movement. The Pearson correlation coefficient (0.551) is labeled as 'Moderate' by the model, aligning with the semantic relationship provided.\n3. The autonomic nervous system proxy shows low beat-to-beat volatility (average jump of 1.174 bpm), suggesting a balanced autonomic tone without excessive sympathetic or parasympathetic dominance.\n4. No elevated HR windows or tachycardia artifacts are detected, and the EWS2 score will reflect a normal HR range.\n5. The technical note confirms the expected discrepancy in array lengths due to the model's receptive field, which does not impact clinical interpretation.",
+  "primary_observation": "The patient exhibits stable heart rate within normal resting ranges, with moderate correlation to light physical movement. No anomalies or sudden changes were detected.",
+  "cardiovascular_state": "Heart rate ranges from 63.8 to 72.8 bpm (filtered), with a mean of 69.2 bpm. The trajectory is stable, and 100% of beats fall within the 60-100 bpm range. No tachycardia or bradycardia detected.",
+  "autonomic_tone": "Low volatility in beat-to-beat intervals (average jump: 1.174 bpm) indicates a balanced autonomic tone with minimal sympathetic or parasympathetic dominance.",
+  "movement_context": "Light movement detected in 31 of 32 windows (after accounting for model receptive field). The moderate correlation (Pearson r = 0.551) between movement and heart rate suggests HR fluctuations are partially activity-driven but not strongly coupled.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [],
+  "requires_attention": false,
+  "recommended_system_action": "Continue baseline monitoring. Verify sensor stability if clinical context suggests prolonged immobility or unexpected environmental changes.",
+  "technical_notes": "Expected array length discrepancy acknowledged (movement data includes 20-second receptive field artifact). No missing data or sensor issues detected."
+}

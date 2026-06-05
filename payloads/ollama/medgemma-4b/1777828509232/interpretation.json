@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The data indicates a stable heart rate with minimal variability, primarily driven by movement. The correlation between movement and heart rate is moderate.",
+  "primary_observation": "The patient exhibits a stable heart rate within the normal range, with minimal fluctuations in response to movement.",
+  "cardiovascular_state": "The mean heart rate is 63.5 bpm, with a standard deviation of 1.8 bpm and a variance of 3.3 bpm. The 25th percentile is 61.7 bpm, the median is 63.3 bpm, and the 75th percentile is 65.1 bpm. The trajectory analysis indicates a stable heart rate.",
+  "autonomic_tone": "The autonomic nervous system proxy (volatility) suggests a relatively stable state with minimal beat-to-beat variability.",
+  "movement_context": "Movement analysis reveals moderate correlation between movement and heart rate, indicated by the Pearson correlation coefficient of 0.493. The patient's activity level is primarily resting or light movement.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "None",
+  "technical_notes": "The cardiovascular analysis contains slightly fewer predictions than the movement analysis. This is caused by the ML model's 20-second historical receptive field, NOT a sensor failure or missing data."
+}

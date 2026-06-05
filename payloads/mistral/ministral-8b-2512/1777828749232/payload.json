@@ -1,0 +1,62 @@
+{
+  "system_telemetry": {
+    "total_recording_duration_seconds": 120,
+    "rolling_window_duration_seconds": 8,
+    "rolling_window_step_seconds": 2,
+    "array_elements_per_window": 320,
+    "model_receptive_field_seconds": 20,
+    "data_alignment_note": "Expected behavior: The cardiovascular_analysis contains slightly fewer predictions than the movement_analysis. This is caused by the ML model's 20-second historical receptive field, NOT a sensor failure or missing data."
+  },
+  "cardiovascular_analysis": {
+    "artifact_and_noise_context": {
+      "raw_ml_max_hr": 82.8,
+      "raw_ml_min_hr": 63.1,
+      "filtered_physiological_max_hr": 75.7,
+      "filtered_physiological_min_hr": 64.1,
+      "estimated_motion_artifact_deviation_bpm": 7.2
+    },
+    "physiological_statistics": {
+      "mean_hr": 69.8,
+      "standard_deviation_hr": 3.2,
+      "variance_hr": 10.4
+    },
+    "baseline_percentiles": {
+      "25th_percentile": 68.6,
+      "50th_percentile_median": 70.3,
+      "75th_percentile": 71.7
+    },
+    "trajectory_analysis": {
+      "semantic_trend_description": "Stable",
+      "mathematical_slope_bpm_per_minute": -3.467
+    },
+    "beats_distribution": {
+      "under_60_bpm": 0,
+      "between_60_and_100_bpm": 50,
+      "over_100_bpm": 0
+    }
+  },
+  "movement_analysis": {
+    "mean_noise_level": 11.067,
+    "sudden_jolt_detected": true,
+    "distribution": {
+      "resting_windows_count": 44,
+      "light_movement_windows_count": 10,
+      "active_movement_windows_count": 2
+    }
+  },
+  "autonomic_nervous_system_proxy": {
+    "average_beat_to_beat_jump": 0.981,
+    "unphysiological_jumps_detected": 0
+  },
+  "clinical_context": {
+    "global_movement_correlation": {
+      "pearson_correlation_coefficient": 0.66,
+      "semantic_relationship": "High (Heart rate strongly driven by physical activity.)"
+    },
+    "tachycardia_artifact_analysis": {
+      "elevated_hr_windows_total": 0,
+      "elevated_hr_during_heavy_motion": 0,
+      "motion_artifact_probability_percentage": 0.0
+    }
+  }
+}

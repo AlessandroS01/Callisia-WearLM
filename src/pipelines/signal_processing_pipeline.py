@@ -163,6 +163,7 @@ class SignalProcessingPipeline:
 
         print(f"[{patient_id}] Cleaning signals...")
         cleaned_data = self._clean_data(signal_data)
+        print(cleaned_data.shape)
 
         # Predict Heart Rate
         print(f"[{patient_id}] Predicting heart rate...")

@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The data indicates a stable heart rate with minimal movement, suggesting a relatively calm state. The correlation between movement and heart rate is moderate.",
+  "primary_observation": "The patient exhibits a stable heart rate of approximately 65 bpm with minimal physical activity over the last 120 seconds. The cardiovascular analysis shows a mean HR of 65.7 bpm, with a standard deviation of 1.2 bpm and a variance of 1.5 bpm.",
+  "cardiovascular_state": "The heart rate remains within a normal range (60-100 bpm) throughout the 120-second window. The patient's heart rate is generally stable, with only slight fluctuations. There are no significant deviations from baseline.",
+  "autonomic_tone": "The autonomic nervous system proxy indicates a relatively stable and consistent heart rate pattern without any significant or unexpected variations in beat-to-beat intervals.",
+  "movement_context": "The patient's movement is minimal, with only slight fluctuations. The correlation between the cardiovascular analysis and the movement analysis is moderate.",
+  "ews_hr_score": 0,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "No action required.",
+  "technical_notes": "The data is consistent with the system's expected behavior. The slight discrepancy in array lengths between movement and cardiovascular data is an expected architectural artifact of the ML model's warm-up period."
+}
