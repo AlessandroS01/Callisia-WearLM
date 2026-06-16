@@ -1,8 +1,15 @@
+"""
+Module for testing the framework and making the evaluation
+"""
+
 from main import main
 from src.evaluation.benchmark_suite import BenchmarkSuite
 
 
 def main_test():
+    """
+    Test the framework
+    """
     initial_timestamp = 1777828389232
 
     n_repetition = 0
@@ -19,6 +26,9 @@ def main_test():
 
 
 def main_eval():
+    """
+    Make the evaluation
+    """
     suite = BenchmarkSuite()
 
     suite.run_timeline_evaluation()

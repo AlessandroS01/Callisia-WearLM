@@ -50,10 +50,10 @@ class CrossConsistencyEvaluator(BaseEvaluator):
             "sentence-transformers/embeddinggemma-300m-medical"
         )
 
-        raw_judge_model = self._choice_judge_model(
+        raw_judge_model = choice_model(
             model_provider=judge_config.get("provider", "passau"),
             model_name=judge_config.get("model_name", "qwen35-397b"),
-            temperature=judge_config.get("temperature", 0.0)
+            temperature=judge_config.get("temperature", 0.1)
         )
 
         # Enforces the structured JSON output schema for the pairwise audit
@@ -74,20 +74,6 @@ class CrossConsistencyEvaluator(BaseEvaluator):
 
         self.chain = self.chat_template | self.judge
 
-    def _choice_judge_model(
-            self,
-            model_provider: str,
-            model_name: str,
-            temperature: float = 0.0
-    ):
-        """
-        Factory method to initialize the appropriate LLM provider.
-        """
-        return choice_model(
-            model_provider=model_provider,
-            model_name=model_name,
-            temperature=temperature,
-        )
 
     def _pipeline(self,
                   payload: dict,
@@ -106,9 +92,10 @@ class CrossConsistencyEvaluator(BaseEvaluator):
         Returns:
             PairwiseAuditEvaluation: A structured object containing the comparative metrics.
         """
-        formatted_payload = json.dumps(payload, indent=2)
         formatted_report_a = report_a.model_dump_json(indent=2)
         formatted_report_b = report_b.model_dump_json(indent=2)
+
+        formatted_payload = json.dumps(payload, indent=2)
 
         evaluation_report = cast(
             PairwiseAuditEvaluation,
@@ -122,8 +109,8 @@ class CrossConsistencyEvaluator(BaseEvaluator):
         return evaluation_report
 
     def evaluate(self,
-                 reports_a: list[ClinicalReportOutput],
-                 reports_b: list[ClinicalReportOutput],
+                 reports_a: list[ClinicalReportOutput], # pylint: disable=arguments-renamed
+                 reports_b: list[ClinicalReportOutput], # pylint: disable=arguments-renamed
                  payloads: Optional[list[dict]] = None
                  ) -> dict:
         """
@@ -182,7 +169,7 @@ class CrossConsistencyEvaluator(BaseEvaluator):
             if np.isnan(kappa_score):
                 kappa_score = 1.0 if agreement_rate == 1.0 else 0.0
 
-        except Exception as e: # pylint: disable=broad-exception-caught
+        except Exception: # pylint: disable=broad-exception-caught
             kappa_score = float('nan')
 
         print(f"Kappa Score: {kappa_score:.4f}")
