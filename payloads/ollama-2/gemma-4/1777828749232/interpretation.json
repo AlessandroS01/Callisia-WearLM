@@ -1,0 +1,15 @@
+{
+  "internal_reasoning": "The user wants me to act as an expert Clinical Telemetry Analyzer AI, interpreting a 120-second physiological data payload. I must adhere strictly to professional, objective, medical-grade language and avoid speculation or diagnosis.\n\n**Plan:**\n1.  **Review Data & Constraints:** Identify key metrics (HR range, movement status, correlation, jolts, autonomic tone).\n2.  **Draft Primary Observation:** Summarize the overall state (stable HR, mixed activity).\n3.  **Draft Cardiovascular State:** Use percentiles and distribution counts. Note that all beats are within the normal 60-100 bpm range.\n4.  **Draft Movement & Context:** Address the correlation score (High) and the movement window counts (mixed). Cross-reference HR with movement.\n5.  **Draft Anomalies/Flags:** Check for `sudden_jolt_detected` (True), high variance, or autonomic issues. Use purely descriptive kinematic terms for jolts.\n6.  **Final Polish:** Ensure tone is objective and concise, adhering to the required Markdown format.",
+  "primary_observation": "The 120-second window demonstrates a generally stable cardiovascular rhythm with moderate physical activity detected. The heart rate trajectory shows no significant deviation from baseline, and the observed correlation confirms that HR changes are strongly linked to movement.",
+  "cardiovascular_state": "Heart Rate (HR) remained within normal physiological limits throughout the recording period, ranging from a minimum of 64.2 bpm to a maximum of 76.0 bpm. The median heart rate was 70.1 bpm, with all recorded beats falling within the standard 60-100 bpm range. The overall trend is described as stable, although there is a minor negative mathematical slope (-3.394 bpm/minute) observed over the window.",
+  "autonomic_tone": "The autonomic nervous system proxy indicates low statistical dynamism with an average beat-to-beat jump of 0.935. No unphysiological jumps were detected, suggesting stable cardiac rhythm variability.",
+  "movement_context": "Physical activity was mixed, characterized by a predominance of resting windows (44 counts) interspersed with light movement (10 counts) and two periods of active movement. The correlation analysis confirms a 'High' semantic relationship between heart rate and physical activity, indicating that the cardiovascular response is strongly driven by motion.",
+  "ews_hr_score": 70,
+  "anomalies_detected": [
+    "* A sudden jolt was detected in the movement data stream.",
+    "* The overall HR variance (10.5) suggests moderate beat-to-beat variability."
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "None",
+  "technical_notes": "The data alignment note regarding the ML model's 20-second receptive field has been acknowledged and does not constitute a reporting error."
+}

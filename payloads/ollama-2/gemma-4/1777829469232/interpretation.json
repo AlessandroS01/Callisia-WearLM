@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The user wants me to act as an expert Clinical Telemetry Analyzer AI and interpret a 120-second physiological data payload. I must adhere strictly to several constraints: no diagnoses, objective language only, cross-reference cardiovascular and movement data, and use the provided labels (e.g., 'Moderate' correlation). The output must follow a specific Markdown format.\n\n**Plan:**\n1.  **Primary Observation:** Synthesize the overall state (HR stability, activity level).\n2.  **Cardiovascular State:** Summarize HR statistics (mean, percentiles, zones) and trends.\n3.  **Movement & Context:** Summarize movement patterns and use the `clinical_context` correlation score to link it to HR.\n4.  **Anomalies / Flags:** Check for jolts, high variance, or disconnected spikes.\n\n**Execution Details:**\n*   **HR Stats:** Mean 69.1 bpm; Range 63.8-72.9 bpm. All beats are between 60 and 100 bpm (50 counts). This is stable/normal resting range.\n*   **Movement:** No sudden jolts detected (`false`). Movement consists of 25 resting windows and 31 light movement windows, with zero active movement windows. The overall activity level is low to moderate.\n*   **Correlation:** `semantic_relationship` is ",
+  "primary_observation": "The patient maintained a stable cardiovascular rhythm characterized by resting vital signs and minimal physical exertion during the observed 120-second window.",
+  "cardiovascular_state": "Heart rate remained within normal physiological parameters (63.8–72.9 bpm). The mean heart rate was 69.1 bpm, with the median at 70.6 bpm. All recorded beats fell within the normative range of 60-100 bpm, and the trajectory analysis indicated a stable trend.",
+  "autonomic_tone": "The autonomic nervous system proxy showed an average beat-to-beat jump of 1.132, with no unphysiological jumps detected, suggesting consistent rhythmicity.",
+  "movement_context": "Physical activity was characterized by a predominance of resting (25 windows) and light movement (31 windows), with zero recorded active movement windows. The correlation between cardiovascular metrics and physical movement was classified as Moderate, indicating a measurable relationship between the two systems.",
+  "ews_hr_score": 70,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Continue standard monitoring protocol.",
+  "technical_notes": "Data integrity confirmed. All metrics are within expected physiological and technical bounds."
+}

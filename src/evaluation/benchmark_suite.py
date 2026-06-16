@@ -21,6 +21,7 @@ import numpy as np
 from src.config_loader import load_config
 from src.evaluation.clinical_auditor_evaluator import ClinicalAuditorEvaluator
 from src.evaluation.consistency_evaluator import ConsistencyEvaluator
+from src.evaluation.cross_consistency_evaluator import CrossConsistencyEvaluator
 from src.evaluation.robustness_evaluator import RobustnessEvaluator
 from src.pipelines import LLMInsightsPipeline
 
@@ -40,7 +41,7 @@ class BenchmarkSuite:
         clinical_auditor_eval (ClinicalAuditorEvaluator): The logic and safety auditor.
         consistency_eval (ConsistencyEvaluator): The semantic similarity engine.
          robustness_eval (RobustnessEvaluator): The perturbation/dial test engine.
-        providers (list): Target inference providers (e.g., 'groq', 'ollama').
+        providers (list): Target inference providers (e.g., 'groq', 'ollama-2').
     """
     def __init__(self):
         """
@@ -62,9 +63,13 @@ class BenchmarkSuite:
         self.robustness_eval = RobustnessEvaluator(
             llm_pipeline=self.llm_pipeline
         )
+        self.cross_consistency_eval = CrossConsistencyEvaluator(
+            llm_pipeline=self.llm_pipeline,
+            judge_config=self.config.get("evaluation")
+        )
 
         # List of providers to evaluate
-        self.providers = ["groq", "ollama", "mistral"]
+        self.providers = ["mistral", "ollama-1", "ollama-2"]
 
     def _retrieve_data_provider(self, provider: str) -> dict:
         """
@@ -219,7 +224,7 @@ class BenchmarkSuite:
             print(f"Run {i+1}/{iterations}")
             try:
                 # If this fails (e.g., 400 error), it jumps to 'except'
-                report = self.llm_pipeline.run(payload) # temperature to 0.7
+                report = self.llm_pipeline.run(payload) # llm temperature to 0.7
                 reports.append(report)
                 success_count += 1
                 print("SUCCESS")
@@ -249,7 +254,7 @@ class BenchmarkSuite:
         between the raw statistical payloads and the generated narrative reports.
         It produces scores for logic alignment and safety guardrail compliance.
         """
-        provider = self.providers[2]
+        provider = self.providers[0]
 
         provider_data = self._retrieve_data_provider(provider)
 
@@ -404,3 +409,43 @@ class BenchmarkSuite:
 
         print(f"Mean Average Execution Time per Provider: \n{mean_average_time}")
         return mean_average_time
+
+    def run_cross_consistency_evaluation(self):
+        """
+        Executes a pairwise cross-consistency audit across inference providers.
+
+        This benchmark pairs models (e.g., Mistral-7b vs.
+        MedGemma-4b) and evaluates their semantic, categorical, and logical alignment
+        when interpreting the exact same deterministic telemetry payloads. By leveraging
+        an LLM-as-a-Judge architecture alongside statistical metrics (Cohen's Kappa and
+        Cosine Similarity), this method isolates whether the clinical disposition is
+        driven by the underlying physiological data or skewed by the specific parameters
+        and intrinsic biases of the architecture.
+
+        Returns:
+            dict: A mapped collection where the keys are tuples
+                representing the evaluated model pair (e.g., ('mistral', 'ollama-1')),
+                and the values are the comprehensive pairwise evaluation dictionaries
+                containing the semantic, categorical, and logical layers.
+        """
+        provider_a = self.providers[1]
+        provider_b = self.providers[2]
+
+        print(f"Running cross consistency evaluation between {provider_a} and {provider_b}")
+
+        provider_a_data = self._retrieve_data_provider(provider_a)
+        provider_b_data = self._retrieve_data_provider(provider_b)
+
+        payloads = self._retrieve_payloads(provider_a_data)
+
+        reports_a = self._retrieve_reports(provider_a_data)
+        reports_b = self._retrieve_reports(provider_b_data)
+
+        final_evaluation = self.cross_consistency_eval.evaluate(
+            reports_a=reports_a,
+            reports_b=reports_b,
+            payloads=payloads
+        )
+
+        print(f"Evaluation completed for {provider_a} vs {provider_b}:"
+              f"\n\n{final_evaluation}")

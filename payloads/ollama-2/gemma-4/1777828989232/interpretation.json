@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The user wants me to act as an expert Clinical Telemetry Analyzer AI, interpreting a 120-second physiological data payload. I must adhere strictly to professional, objective language, avoid diagnoses, and follow the specified output format.\n\n**Plan:**\n1.  **Review Data:** Analyze `cardiovascular_analysis`, `movement_analysis`, `autonomic_nervous_system_proxy`, and `clinical_context`.\n2.  **Synthesize Primary Observation:** Create a concise summary (1-2 sentences).\n3.  **Draft Cardiovascular State:** Summarize HR statistics, percentiles, trends, and zones.\n4.  **Draft Movement & Context:** Summarize activity levels and use the `clinical_context` correlation score to link movement and HR.\n5.  **Draft Anomalies/Flags:** Check for jolts, variance, or disconnected spikes.\n6.  **Final Review:** Ensure tone is objective, no speculation occurs, and all constraints (e.g., 'Low' correlation must be stated as such) are met.",
+  "primary_observation": "The 120-second window demonstrates stable cardiovascular parameters with a mean heart rate of 67.5 bpm. Physical activity was minimal, resulting in a low correlation between measured movement and cardiac rhythm.",
+  "cardiovascular_state": "Heart Rate (HR) remained within the normal resting range throughout the observation period. The median HR was 68.0 bpm, with values ranging from a minimum of 63.7 bpm to a maximum of 70.1 bpm. The trend analysis indicates a stable trajectory with a minor positive slope (1.276 bpm/minute). All recorded beats fall within the normal range of 60-100 bpm.",
+  "autonomic_tone": "The autonomic nervous system proxy suggests low statistical dynamism, evidenced by an average beat-to-beat jump of 0.754 and no unphysiological jumps detected.",
+  "movement_context": "Movement analysis indicates a predominantly resting state, with counts showing 56 resting windows and zero instances of light or active movement. The clinical context confirms a low correlation (Pearson coefficient: 0.09), indicating that the heart rate is disconnected from physical exertion during this period.",
+  "ews_hr_score": 85,
+  "anomalies_detected": [
+    "None detected"
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Continue monitoring for changes in activity level or sustained deviation from baseline parameters.",
+  "technical_notes": "The data alignment note regarding the ML model's receptive field discrepancy has been acknowledged and does not impact the clinical interpretation of the physiological metrics provided."
+}

@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The user wants me to act as an expert Clinical Telemetry Analyzer AI, interpreting a 120-second physiological data payload. I must adhere strictly to professional, objective language, avoid diagnoses/speculation, and follow the specified output format.\n\n**Plan:**\n1.  **Review Data & Constraints:** Check for key metrics (HR range, trend, movement counts, correlation, jolts).\n2.  **Draft Primary Observation:** Summarize the overall state (e.g., stable, mildly active).\n3.  **Draft Cardiovascular State:** Use percentiles, mean/SD, and beats distribution. Note the falling trend.\n4.  **Draft Movement & Context:** Incorporate movement counts and use the `clinical_context` correlation score (0.801 / 'High').\n5.  **Draft Anomalies/Flags:** Check for jolts (`false`), high variance, or significant jumps.\n6.  **Final Polish:** Ensure tone is objective and medical-grade.",
+  "primary_observation": "The patient maintained a generally stable cardiovascular state characterized by moderate activity levels over the 120-second window. The heart rate trajectory showed a slight downward trend, which aligns with the observed pattern of physical movement.",
+  "cardiovascular_state": "Heart Rate remained within normal physiological parameters (Min: 62.1 bpm; Max: 86.8 bpm). The mean HR was 69.2 bpm ($\text{SD}=7.7$ bpm), with the median falling at 65.8 bpm. Beats were predominantly observed in the normal range (60-100 bpm, accounting for 51% of beats), and no episodes below 60 bpm or above 100 bpm were recorded. The overall trend analysis indicates a slight decline ($\text{Slope}=-13.564$ bpm/minute).",
+  "autonomic_tone": "The average beat-to-beat jump was $1.076$, and no unphysiological jumps were detected, suggesting stable autonomic tone.",
+  "movement_context": "Physical activity was characterized by a mix of resting periods (49 windows) and limited active movement (3 windows). The high correlation coefficient ($\text{Pearson}=0.801$) confirms that the heart rate is strongly driven by physical activity, supporting the observed relationship between HR variability and motion.",
+  "ews_hr_score": 5,
+  "anomalies_detected": [
+    "None detected."
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Continue routine monitoring. The observed physiological parameters are within expected limits for the reported activity level.",
+  "technical_notes": "The data alignment note regarding the ML model's 20-second receptive field has been acknowledged and does not impact the interpretation of the current 120-second window."
+}

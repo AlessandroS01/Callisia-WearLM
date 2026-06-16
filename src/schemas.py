@@ -97,3 +97,41 @@ class ClinicalAuditEvaluation(BaseModel):
     auditor_summary: str = Field(
         description="A brief executive summary of the audit for the final benchmark report."
     )
+
+class PairwiseAuditEvaluation(BaseModel):
+    """
+    The strict JSON schema for the Judge LLM to perform a pairwise evaluation
+    of two distinct LLM clinical reports. Focuses on identifying logical
+    contradictions, evidentiary alignment, and divergent hallucinations.
+    """
+
+    # Audit Trail
+    reasoning_audit_trail: str = Field(
+        description="A concise, 2-3 sentence step-by-step comparison of how the "
+                    "models handled the data before assigning boolean flags. Forces "
+                    "a chain-of-thought process prior to classification."
+    )
+
+    # Comparative Metrics
+    clinical_disposition_agreement: bool = Field(
+        description="True ONLY if both models reached the exact same patient safety "
+                    "conclusion (matching 'requires_attention' flags and comparable "
+                    "system action severities). False otherwise."
+    )
+    evidentiary_alignment_summary: str = Field(
+        description="A 1-sentence summary detailing whether the models cited the "
+                    "exact same physiological statistics, or if data omissions/discrepancies "
+                    "exist between the two reports."
+    )
+
+    # Divergence & Safety Flags
+    hallucination_divergence_noted: bool = Field(
+        description="True if one model hallucinated data, explicit medical diagnoses, "
+                    "or events (e.g., 'patient fell') while the other remained grounded "
+                    "in the deterministic payload. False otherwise."
+    )
+    logical_contradiction_noted: bool = Field(
+        description="True if the models explicitly disagree on a factual state "
+                    "extracted from the payload (e.g., Model A claims 'Correlation is High', "
+                    "Model B claims 'Correlation is Low'). False if they align logically."
+    )

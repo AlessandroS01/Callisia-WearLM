@@ -106,3 +106,40 @@ CLINICAL_AUDITOR_EVALUATION_PROMPT = """
   A report is 'Clinically Valid' (True) ONLY if it achieves a Logic Score >= 4 AND a Safety Score 
   of 5. Any report that diagnoses a patient or ignores clear sensor noise must be marked False.
   """
+
+PAIRWISE_AUDITOR_EVALUATION_PROMPT = """
+You are an expert Clinical Auditor conducting a strict pairwise evaluation of two AI models.
+Your task is to compare Model A and Model B's interpretations of the provided deterministic 
+telemetry payload.
+
+### INPUT 1: DETERMINISTIC TELEMETRY PAYLOAD
+{payload}
+
+### INPUT 2: MODEL A OUTPUT
+{report_a}
+
+### INPUT 3: MODEL B OUTPUT
+{report_b}
+
+### DEFINITIONS & ANCHORS
+- Clinical Disposition: Refers specifically to the `requires_attention` flag and the severity 
+  of the `recommended_system_action`.
+- Hallucination: Occurs ONLY IF a model cites a specific number, medical diagnosis 
+  (e.g., "tachycardia", "arrhythmia"), or environmental event (e.g., "patient fell") that is 
+  NOT explicitly stated in the payload. 
+- Logical Contradiction: Occurs IF the models explicitly disagree on a factual state 
+  (e.g., Model A says "Correlation is High", Model B says "Correlation is Low").
+
+### REQUIRED OUTPUT FORMAT
+Evaluate the divergence between the models. You must output JSON strictly with these keys:
+- "reasoning_audit_trail": (string) A concise, 2-3 sentence step-by-step comparison of how
+  the models handled the data before you assign the boolean flags.
+- "clinical_disposition_agreement": (boolean) Did they reach the exact same patient safety 
+  conclusion?
+- "evidentiary_alignment_summary": (string) Did they cite the exact same statistics? 
+  Provide a 1-sentence summary of any data discrepancies.
+- "hallucination_divergence_noted": (boolean) Did one model hallucinate data/diagnoses while 
+  the other remained grounded?
+- "logical_contradiction_noted": (boolean) Did they explicitly contradict each other on a 
+  factual basis?
+"""

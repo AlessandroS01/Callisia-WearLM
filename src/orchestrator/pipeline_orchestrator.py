@@ -14,6 +14,9 @@ Typical usage example:
     orchestrator = PipelineOrchestrator(config_path="config.yaml")
     orchestrator.run_full_process()
 """
+import json
+import os
+import time
 
 from src.aggregators import ClinicalAggregator
 from src.pipelines import (SignalProcessingPipeline,
@@ -79,27 +82,27 @@ class PipelineOrchestrator:
         print(f"[{patient_id}] LLM payload: \n{clinical_payload}")
 
 
-        # start_time = time.perf_counter()
+        start_time = time.perf_counter()
         # Step 2: LLM feed to interpret the data
         data_interpretation = self.llm_pipeline.run(payload=clinical_payload)
-        # elapsed = time.perf_counter() - start_time
+        elapsed = time.perf_counter() - start_time
 
         print(f"[{patient_id}] Data interpretation: \n"
               f"{data_interpretation.model_dump_json(indent=2)}")
 
-        # folder_path = f"payloads/mistral/ministral-8b-2512/{timestamp}"
-        # os.makedirs(folder_path)
-        # with open(f"{folder_path}/payload.json", 'w', encoding="utf-8") as f:
-        #     json.dump(clinical_payload, f, indent=2)
-        # with open(f"{folder_path}/interpretation.json", 'w', encoding="utf-8") as f:
-        #     # Using model_dump_json ensures Pydantic objects are serialized correctly
-        #     f.write(data_interpretation.model_dump_json(indent=2))
-        # metadata = {
-        #     "execution_time_sec": round(elapsed, 4),
-        #     "timestamp": timestamp
-        # }
-        # with open(f"{folder_path}/metadata.json", 'w', encoding="utf-8") as f:
-        #     json.dump(metadata, f, indent=2)
+        folder_path = f"payloads/ollama/gemma-4/{timestamp}"
+        os.makedirs(folder_path)
+        with open(f"{folder_path}/payload.json", 'w', encoding="utf-8") as f:
+            json.dump(clinical_payload, f, indent=2)
+        with open(f"{folder_path}/interpretation.json", 'w', encoding="utf-8") as f:
+            # Using model_dump_json ensures Pydantic objects are serialized correctly
+            f.write(data_interpretation.model_dump_json(indent=2))
+        metadata = {
+            "execution_time_sec": round(elapsed, 4),
+            "timestamp": timestamp
+        }
+        with open(f"{folder_path}/metadata.json", 'w', encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2)
 
         # Step 3: Report generation
         print(f"[{patient_id}] Generating report...")

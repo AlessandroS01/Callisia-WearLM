@@ -8,7 +8,6 @@ It focuses on detecting logical decoupling (where reasoning drifts from math)
 and diagnostic leakage (violations of safety guardrails).
 """
 import json
-import time
 from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -55,11 +54,11 @@ class ClinicalAuditorEvaluator(BaseEvaluator):
             judge_config = {}
 
         raw_judge_model = self._choice_judge_model(
-            model_provider=judge_config.get("provider", "google"),
+            model_provider=judge_config.get("provider", "passau"),
             model_name=judge_config.get(
-                "model_name", "gemini-3.1-flash-lite"
+                "model_name", "qwen35-397b"
             ),
-            temperature=judge_config.get("temperature", 0.0)
+            temperature=judge_config.get("temperature", 0.1)
         )
 
         self.judge = raw_judge_model.with_structured_output(ClinicalAuditEvaluation)
@@ -182,7 +181,5 @@ class ClinicalAuditorEvaluator(BaseEvaluator):
             print(f"Result: \n{result}\n")
 
             results.append(result)
-            print("Starting 15 seconds sleeping...") # as judge model has free tier
-            time.sleep(15)
 
         return results

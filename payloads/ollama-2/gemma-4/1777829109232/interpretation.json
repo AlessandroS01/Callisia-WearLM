@@ -1,0 +1,14 @@
+{
+  "internal_reasoning": "The user wants me to act as an expert Clinical Telemetry Analyzer AI, interpreting a 120-second physiological data payload. I must adhere strictly to professional, objective language, avoid diagnoses, and follow the specified output format.\n\n**Plan:**\n1.  **Review Data:** Analyze `cardiovascular_analysis`, `movement_analysis`, `autonomic_nervous_system_proxy`, and `clinical_context`.\n2.  **Synthesize Primary Observation:** Create a 1-2 sentence summary.\n3.  **Draft Cardiovascular State:** Summarize HR statistics (mean, percentiles, trend, zones).\n4.  **Draft Movement & Context:** Summarize movement activity and use the `clinical_context` correlation score to link it to HR.\n5.  **Draft Anomalies/Flags:** Check for jolts, variance, or disconnected spikes.\n6.  **Review Constraints:** Ensure no diagnoses are made (e.g., do not say 'rested' if the data suggests otherwise; use descriptive terms). Ensure I respect the `clinical_context` labels (e.g., correlation is 'Moderate').\n7.  **Final Formatting:** Apply Markdown structure.",
+  "primary_observation": "The 120-second window demonstrates a stable cardiovascular profile with no evidence of acute physiological distress or significant movement artifacts. The heart rate trend suggests a gradual decline over the observation period.",
+  "cardiovascular_state": "Heart Rate statistics indicate a mean HR of 73.7 bpm (SD: 9.1 bpm). The distribution is centered within the normal range, with 50% of beats falling between 60 and 100 bpm. Percentile analysis shows the median HR at 73.3 bpm, ranging from a 25th percentile of 63.2 bpm to a 75th percentile of 82.3 bpm. The trajectory analysis indicates a slight downward trend (slope: -11.334 bpm/minute).",
+  "autonomic_tone": "The autonomic nervous system proxy reports an average beat-to-beat jump of 1.274, with zero unphysiological jumps detected.",
+  "movement_context": "Movement analysis indicates a predominantly resting state, evidenced by 56 recorded resting windows and zero counts for light or active movement windows. The correlation between cardiovascular activity and movement is classified as Moderate (Pearson coefficient: 0.351), suggesting a moderate relationship between the two physiological streams.",
+  "ews_hr_score": 73,
+  "anomalies_detected": [
+    "None detected."
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "Continue monitoring for sustained trends or deviations from the established baseline.",
+  "technical_notes": "Data alignment discrepancy noted as expected architectural artifact (20-second receptive field)."
+}

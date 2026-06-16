@@ -1,14 +1,14 @@
 """
 Module for creating the LLM for the pipeline and the evaluation
 """
+import os
 
 from dotenv import load_dotenv, find_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
 from langchain_ollama import ChatOllama
-from langchain_openai import OpenAI
-from langchain_xai import ChatXAI
+from langchain_openai import ChatOpenAI
 
 
 def choice_model(
@@ -34,15 +34,19 @@ def choice_model(
     load_dotenv(find_dotenv(raise_error_if_not_found=True), override=True)
 
     if model_provider == "openai":
-        return OpenAI(
+        return ChatOpenAI(
             model=model_name, temperature=temperature)
-    if model_provider == "ollama":
+    if model_provider == "ollama-2":
         return ChatOllama(
             model=model_name, temperature=temperature
         )
-    if model_provider == "xai":
-        return ChatXAI(
-            model=model_name, temperature=temperature
+    if model_provider == 'passau':
+        passau_key = os.environ.get("PASSAU_KEY")
+        return ChatOpenAI(
+            model=model_name,
+            api_key=passau_key,
+            base_url="https://llms.innkube.fim.uni-passau.de",
+            temperature=temperature
         )
     if model_provider == "mistral":
         return ChatMistralAI(

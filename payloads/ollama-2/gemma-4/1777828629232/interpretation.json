@@ -1,0 +1,15 @@
+{
+  "internal_reasoning": "The user wants me to act as an expert Clinical Telemetry Analyzer AI, interpreting a 120-second physiological data payload. I must adhere strictly to professional, objective language, avoid diagnosis/speculation, and follow the specified output format.\n\n**Plan:**\n1.  **Review Data & Constraints:** Identify key metrics (HR stats, Movement counts, Correlation, Jolts).\n2.  **Draft Primary Observation:** Synthesize the overall picture (stable HR, mixed movement, moderate correlation).\n3.  **Draft Cardiovascular State:** Use mean/median/percentiles. Note that all beats are within the normal 60-100 bpm range. Describe stability and low variance.\n4.  **Draft Movement & Context:** Quantify activity levels (resting vs. active). Crucially, use the `clinical_context` correlation score: 'Moderate'.\n5.  **Draft Anomalies / Flags:** Check for jolts (`sudden_jolt_detected: true`), high variance/jumps, and artifact notes.\n6.  **Final Polish:** Ensure tone is objective, concise, and medical-grade. (Self-Correction: Do not mention the array length discrepancy in the report; only acknowledge it internally.)\n\n*Execution Check:* \n*   *HR:* Mean 64.9 bpm. Stable trend. No elevated HR (>100 bpm) or bradycardia (<60 bpm).\n*   *Movement:* Mixed activity (47 resting, 8 light, 2 active). Moderate correlation (0.471).\n*   *Anomaly:* Sudden jolt detected. Autonomic proxy notes one unphysiological jump.\n\nThis structure meets all requirements.",
+  "primary_observation": "The patient exhibited a generally stable cardiovascular rhythm over the 120-second window, characterized by mixed levels of physical activity and a moderate correlation between movement and heart rate.",
+  "cardiovascular_state": "Heart Rate maintained a mean value of 64.9 bpm (Median: 63.7 bpm), remaining within the normal range (60–100 bpm). The trajectory analysis indicates a stable trend with low overall variance ($\text{SD}=4.4$ bpm). All recorded beats were classified between 60 and 100 bpm, with no evidence of sustained tachycardia or bradycardia.",
+  "autonomic_tone": "The autonomic nervous system proxy registered an average beat-to-beat jump of 1.4 bpm, noting one instance of unphysiological jumps detected.",
+  "movement_context": "Physical activity was mixed, comprising 47 resting windows and 8 light movement windows, with minimal active movement recorded (2 windows). The global correlation coefficient between movement and heart rate was calculated at 0.471, which is semantically classified as Moderate.",
+  "ews_hr_score": 649,
+  "anomalies_detected": [
+    "A rapid accelerometer transient was detected during the recording period.",
+    "One instance of unphysiological heart rate jump was noted by the autonomic proxy."
+  ],
+  "requires_attention": false,
+  "recommended_system_action": "None. Continue monitoring for sustained changes in correlation or rhythm stability.",
+  "technical_notes": "The data alignment note regarding the ML model's 20-second receptive field has been acknowledged and does not constitute a reporting error."
+}

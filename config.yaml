@@ -16,15 +16,15 @@ llm:
   # Configuration for the LLM
   #provider: "google"
   #model_name: "gemini-3.1-flash-lite"
-  provider: "ollama"
-  model_name: "medgemma:4b"
+  provider: "ollama-2"
+  model_name: "gemma4:latest"
   temperature: 0.7
 
 evaluation:
   # Configuration for the judge model used for evaluation
-  provider: "google"
-  model_name: "gemini-3.1-flash-lite"
-  temperature: 0.0
+  provider: "passau"
+  model_name: "qwen35-397b"
+  temperature: 0.1
 
 
 params:
