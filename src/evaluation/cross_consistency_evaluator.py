@@ -108,9 +108,10 @@ class CrossConsistencyEvaluator(BaseEvaluator):
 
         return evaluation_report
 
+    # pylint: disable=arguments-renamed, arguments-differ
     def evaluate(self,
-                 reports_a: list[ClinicalReportOutput], # pylint: disable=arguments-renamed
-                 reports_b: list[ClinicalReportOutput], # pylint: disable=arguments-renamed
+                 reports_a: list[ClinicalReportOutput],
+                 reports_b: list[ClinicalReportOutput],
                  payloads: Optional[list[dict]] = None
                  ) -> dict:
         """
